@@ -53,7 +53,16 @@ function compareSeniority(
 }
 
 // ── Vietnamese Terminology Constants ──────────────────────────────────────
-
+//xưng hiệu gọi tổ tiên 9 đời (Cửu Tộc)
+// Bố/Mẹ (Đời thứ 1 trên bạn)
+// Ông/Bà (Đời thứ 2)
+// Cụ (Đời thứ 3 - chữ Hán gọi là Tằng tổ)
+// Kỵ (Đời thứ 4 - chữ Hán gọi là Cao tổ)
+// Sơ (Đời thứ 5 - chữ Hán gọi là Thái tổ)
+// Tiệm (Đời thứ 6 - chữ Hán gọi là Viễn tổ)
+// Tiểu (Đời thứ 7 - chữ Hán gọi là Tỷ tổ)
+// Di (Đời thứ 8 - chữ Hán gọi là Nghênh tổ)
+// Diễn (Đời thứ 9 - chữ Hán gọi là Thần tổ)
 const ANCESTORS = [
   '',
   'Bố/Mẹ',
@@ -66,6 +75,15 @@ const ANCESTORS = [
   'Di',
   'Diễn'
 ]
+//Ý nghĩa thứ tự các thế hệ
+// Con: Thế hệ thứ 1 (do cha mẹ sinh ra).
+// Cháu: Thế hệ thứ 2 (con của con).
+// Chắt: Thế hệ thứ 3 (con của cháu).
+// Chít: Thế hệ thứ 4 (con của chắt).
+// Chút: Thế hệ thứ 5 (con của chít).
+// Chét: Thế hệ thứ 6 (con của chút).
+// Chót: Thế hệ thứ 7 (con của chét).
+// Chẹt: Thế hệ thứ 8 (con của chót).
 const DESCENDANTS = [
   '',
   'Con',
@@ -187,7 +205,8 @@ function resolveBloodTerms(
     if (isPaternalSide) {
       // Bên Nội (Anh em của bố)
       if (genderB === 'female') {
-        termForB = seniority === 'junior' ? 'Bác' : 'Cô'
+        // termForB = seniority === 'junior' ? 'Bác' : 'Cô'
+        termForB = 'Cô' // Miền Bắc: Bác, Miền Nam/Trung: Cô
       } else {
         termForB = seniority === 'junior' ? 'Bác' : 'Chú'
       }

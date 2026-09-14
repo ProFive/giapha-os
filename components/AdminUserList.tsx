@@ -4,13 +4,14 @@ import {
   adminCreateUser,
   changeUserRole,
   deleteUser,
+  resetUserPassword,
   toggleUserStatus
 } from '@/app/actions/user'
 import config from '@/app/config'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AdminUserData, UserRole } from '@/types'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Trash } from 'lucide-react'
+import { KeyRound, Trash } from 'lucide-react'
 import { useState } from 'react'
 
 interface AdminUserListProps {
@@ -96,6 +97,33 @@ export default function AdminUserList({
     } catch (error: unknown) {
       const msg =
         error instanceof Error ? error.message : t('adminUnknownStatusError')
+      showNotification(msg, 'error')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleResetPassword = async (userId: string) => {
+    if (isDemo) {
+      showNotification(t('adminDemoNotice'), 'info')
+      return
+    }
+    if (!confirm(t('adminConfirmResetPassword'))) return
+    try {
+      setLoadingId(userId)
+      const result = await resetUserPassword(userId)
+
+      if (result?.error) {
+        showNotification(result.error, 'error')
+        return
+      }
+
+      showNotification(t('adminPasswordReset'), 'success')
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : t('adminUnknownResetPasswordError')
       showNotification(msg, 'error')
     } finally {
       setLoadingId(null)
@@ -332,6 +360,14 @@ export default function AdminUserList({
                   <td className='px-6 py-4 text-right'>
                     {user.id !== currentUserId && (
                       <div className='flex items-center justify-end gap-2'>
+                        <button
+                          title={t('adminResetPassword')}
+                          disabled={loadingId === user.id}
+                          onClick={() => handleResetPassword(user.id)}
+                          className='rounded-md p-1.5 text-stone-400 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-50'
+                        >
+                          <KeyRound className='size-4' />
+                        </button>
                         <button
                           title={t('adminDeleteUser')}
                           disabled={loadingId === user.id}

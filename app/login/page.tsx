@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
 const ssoGuideUrl =
-  'https://github.com/homielab/giapha-os#đăng-nhập-bằng-google-và-facebook'
+  'https://github.com/ProFive/giapha-os#đăng-nhập-bằng-google-và-facebook'
 
 export default function LoginPage() {
   const { t } = useI18n()
@@ -289,7 +289,7 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            {(ssoDisabled || ssoError) && (
+            {ssoError && (
               <motion.div
                 initial={{ opacity: 0, y: -10, height: 0 }}
                 animate={{ opacity: 1, y: 0, height: 'auto' }}

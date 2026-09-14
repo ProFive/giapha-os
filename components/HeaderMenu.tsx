@@ -9,6 +9,7 @@ import {
   Database,
   GitMerge,
   Info,
+  KeyRound,
   Network,
   UserCircle,
   Users
@@ -60,6 +61,12 @@ export default function HeaderMenu() {
       icon: BarChart2,
       label: t('statistics'),
       hover: 'hover:bg-purple-50 hover:text-purple-700'
+    },
+    {
+      href: '/dashboard/account',
+      icon: KeyRound,
+      label: t('accountTitle'),
+      hover: 'hover:bg-stone-100 hover:text-stone-700'
     }
   ]
 

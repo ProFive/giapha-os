@@ -39,6 +39,12 @@ export const messages = {
       'Bạn có chắc chắn muốn xóa user này khỏi hệ thống vĩnh viễn không?',
     adminDeleted: 'Đã xóa người dùng thành công.',
     adminUnknownDeleteError: 'Lỗi không xác định khi xoá user',
+    adminResetPassword: 'Đặt lại mật khẩu',
+    adminConfirmResetPassword:
+      'Đặt lại mật khẩu của người dùng này về mật khẩu mặc định?',
+    adminPasswordReset: 'Đã đặt lại mật khẩu về mặc định.',
+    adminUnknownResetPasswordError:
+      'Lỗi không xác định khi đặt lại mật khẩu',
     adminDemoCreateNotice:
       'Đây là trang demo, chức năng tạo người dùng bị hạn chế.',
     adminCreated:
@@ -359,6 +365,18 @@ export const messages = {
     signupSuccess:
       'Đăng ký thành công! Vui lòng chờ admin kích hoạt tài khoản để xem nội dung.',
     passwordMismatch: 'Mật khẩu xác nhận không khớp.',
+    accountTitle: 'Tài khoản',
+    accountDescription:
+      'Quản lý thông tin đăng nhập của bạn. Đổi mật khẩu định kỳ để bảo vệ tài khoản.',
+    changePassword: 'Đổi mật khẩu',
+    changingPassword: 'Đang đổi mật khẩu...',
+    currentPassword: 'Mật khẩu hiện tại',
+    currentPasswordPlaceholder: 'Nhập mật khẩu hiện tại',
+    newPassword: 'Mật khẩu mới',
+    newPasswordPlaceholder: 'Nhập mật khẩu mới',
+    passwordChanged: 'Đổi mật khẩu thành công.',
+    passwordRequired: 'Vui lòng nhập đầy đủ các ô mật khẩu.',
+    passwordTooShort: 'Mật khẩu phải có ít nhất 8 ký tự.',
     unexpectedError: 'Đã xảy ra lỗi không mong muốn',
     oauthNotConfigured:
       'Đăng nhập với {provider} chưa được cấu hình trên hệ thống.',
@@ -826,6 +844,12 @@ export const messages = {
       'Are you sure you want to permanently delete this user from the system?',
     adminDeleted: 'User deleted successfully.',
     adminUnknownDeleteError: 'Unknown error while deleting user',
+    adminResetPassword: 'Reset password',
+    adminConfirmResetPassword:
+      'Reset the password for this user to the default password?',
+    adminPasswordReset: 'Password has been reset to the default.',
+    adminUnknownResetPasswordError:
+      'Unknown error while resetting password',
     adminDemoCreateNotice: 'This is a demo site; creating users is restricted.',
     adminCreated: 'User created successfully! They can log in now.',
     adminUnknownCreateError: 'Unknown error while creating user',
@@ -1150,6 +1174,18 @@ export const messages = {
     signupSuccess:
       'Registration successful! Please wait for an administrator to activate your account.',
     passwordMismatch: 'The confirmation password does not match.',
+    accountTitle: 'Account',
+    accountDescription:
+      'Manage your sign-in details. Change your password regularly to keep your account secure.',
+    changePassword: 'Change password',
+    changingPassword: 'Changing password...',
+    currentPassword: 'Current password',
+    currentPasswordPlaceholder: 'Enter your current password',
+    newPassword: 'New password',
+    newPasswordPlaceholder: 'Enter your new password',
+    passwordChanged: 'Password changed successfully.',
+    passwordRequired: 'Please fill in every password field.',
+    passwordTooShort: 'Password must be at least 8 characters.',
     unexpectedError: 'An unexpected error occurred',
     oauthNotConfigured: '{provider} sign-in is not configured on this system.',
     aboutTitle: 'About the project',

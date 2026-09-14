@@ -1,5 +1,6 @@
 'use server'
 
+import config from '@/app/config'
 import { getServerTranslations } from '@/lib/i18n/server'
 import { UserRole } from '@/types'
 import { getSupabase } from '@/utils/supabase/queries'
@@ -68,6 +69,40 @@ export async function adminCreateUser(formData: FormData) {
   }
 
   revalidatePath('/dashboard/users')
+  return { success: true }
+}
+
+export async function resetUserPassword(userId: string) {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('admin_reset_user_password', {
+    target_user_id: userId,
+    new_password: config.defaultResetPassword
+  })
+
+  if (error) {
+    console.error('Failed to reset user password:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/dashboard/users')
+  return { success: true }
+}
+
+export async function changeOwnPassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('change_own_password', {
+    old_password: currentPassword,
+    new_password: newPassword
+  })
+
+  if (error) {
+    console.error('Failed to change password:', error)
+    return { error: error.message }
+  }
+
   return { success: true }
 }
 

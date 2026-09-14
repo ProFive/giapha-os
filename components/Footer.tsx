@@ -24,7 +24,7 @@ export default function Footer({
         )}
         <p className='flex items-center justify-center gap-2 opacity-80 transition-opacity hover:opacity-100'>
           <a
-            href='https://github.com/homielab/giapha-os'
+            href='https://github.com/ProFive/giapha-os'
             target='_blank'
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1.5 font-medium text-stone-600 transition-colors hover:text-amber-700'>
