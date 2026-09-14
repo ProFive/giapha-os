@@ -47,3 +47,4 @@ next-env.d.ts
 .agent/
 skills-lock.json
 NOTE.md
+.env*
