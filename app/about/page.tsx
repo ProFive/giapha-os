@@ -38,8 +38,8 @@ export default function AboutPage() {
 
             <div className='max-w-none'>
               <p className='mb-8 text-sm leading-relaxed text-stone-600'>
-                <strong className='text-stone-800'>Gia Phả OS</strong>{' '}
-                {t('aboutDescription').replace('Gia Phả OS ', '')}
+                <strong className='text-stone-800'>Nguyễn Tộc</strong>{' '}
+                {t('aboutDescription').replace('Nguyễn Tộc ', '')}
               </p>
 
               <div className='mt-8 mb-4 flex items-center gap-3 border-t border-stone-100 pt-8'>
