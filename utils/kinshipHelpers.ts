@@ -405,6 +405,11 @@ function findBloodKinship(
       if (dist < minDistance) {
         minDistance = dist
         lcaId = id
+      } else if (dist === minDistance && lcaId) {
+        // Cùng khoảng cách (thường là cặp vợ chồng tổ tiên): ưu tiên Ba/Bố
+        const isMale = personsMap.get(id)?.gender === 'male'
+        const currentIsMale = personsMap.get(lcaId)?.gender === 'male'
+        if (isMale && !currentIsMale) lcaId = id
       }
     }
   }
@@ -468,6 +473,15 @@ export function computeKinship(
       sB.push(r.person_a)
       spouseMap.set(r.person_b, sB)
     }
+  }
+
+  // Ưu tiên nhánh Nội: luôn truy ngược theo Ba/Bố trước, Mẹ sau
+  for (const parents of parentMap.values()) {
+    parents.sort((x, y) => {
+      const mx = personsMap.get(x)?.gender === 'male' ? 0 : 1
+      const my = personsMap.get(y)?.gender === 'male' ? 0 : 1
+      return mx - my
+    })
   }
 
   // 0. Kiểm tra quan hệ hôn nhân trực tiếp
