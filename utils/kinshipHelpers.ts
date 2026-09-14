@@ -32,6 +32,30 @@ interface RelEdge {
 /**
  * So sánh thứ bậc giữa hai người (cùng bố mẹ hoặc cùng thế hệ)
  * Ưu tiên: Thứ tự sinh (birth_order) -> Năm sinh (birth_year)
+ * Xưng hô trong quan hệ gia đình
+ * Bên nội thì gồm có:
+  * Ông bà nội.
+  * Ba, bố.
+  * Anh trai của ba thì gọi là Bác.
+  * Chị gái của ba cũng gọi là Cô.
+  * Em trai của ba thì gọi là Chú.
+  * Em gái của ba thì gọi là Cô.
+  * Vợ của anh trai ba thì gọi là Bác.
+  * Chồng của chị gái ba cũng gọi bằng Dượng.
+  * Vợ của em trai ba thì gọi là Thím.
+  * Chồng của em gái ba thì gọi là Dượng.
+  
+* Và bên ngoại thì gồm có:
+  Ông bà ngoại.
+  Mẹ.
+  Anh trai của mẹ được gọi là Cậu.
+  Chị gái của mẹ cũng được gọi là Dì.
+  Em trai của mẹ được gọi là Cậu.
+  Em gái của mẹ được gọi là Dì.
+  Vợ anh trai của mẹ được gọi là Mợ.
+  Chồng chị gái của mẹ cũng được gọi là Dượng.
+  Vợ em trai của mẹ được gọi là Mợ.
+  Chồng em gái của mẹ được gọi là Dượng.
  */
 function compareSeniority(
   a: PersonNode,
@@ -95,6 +119,27 @@ const DESCENDANTS = [
   'Chót',
   'Chẹt'
 ]
+
+// Cách gọi vợ/chồng của người thân vế trên (chuẩn Miền Trung & Nam)
+// Nội: vợ Bác -> Bác, vợ Chú -> Thím, chồng Cô -> Dượng
+// Ngoại: vợ Cậu -> Mợ, chồng Dì -> Dượng
+const SPOUSE_OF_KIN_TERM: Record<string, string> = {
+  'Bác': 'Bác',
+  'Chú': 'Thím',
+  'Cô': 'Dượng',
+  'Cậu': 'Mợ',
+  'Dì': 'Dượng',
+  'Bác họ': 'Bác họ',
+  'Chú họ': 'Thím họ',
+  'Cô họ': 'Dượng họ',
+  'Cậu họ': 'Mợ họ',
+  'Dì họ': 'Dượng họ',
+  'Ông Bác': 'Bà Bác',
+  'Ông Chú': 'Bà Thím',
+  'Ông Cậu': 'Bà Mợ',
+  'Bà Cô': 'Ông Dượng',
+  'Bà Dì': 'Ông Dượng'
+}
 
 /**
  * Lấy danh xưng trực hệ vế trên
@@ -503,24 +548,8 @@ export function computeKinship(
         bCallsA = 'Anh rể (họ)'
       } else if (res.bCallsA === 'Anh họ') {
         bCallsA = 'Chị dâu (họ)'
-      } else if (res.bCallsA === 'Chú') {
-        bCallsA = 'Cô'
-      } else if (res.bCallsA === 'Chú họ') {
-        bCallsA = 'Thím họ'
-      } else if (res.bCallsA === 'Bác họ') {
-        bCallsA = 'Bác họ'
-      } else if (res.bCallsA === 'Cô') {
-        bCallsA = 'Chú'
-      } else if (res.bCallsA === 'Cậu') {
-        bCallsA = 'Dì'
-      } else if (res.bCallsA === 'Dì') {
-        bCallsA = 'Cậu'
-      } else if (res.bCallsA === 'Bà Cô') {
-        bCallsA = 'Ông Dượng'
-      } else if (res.bCallsA === 'Ông Chú') {
-        bCallsA = 'Bà Thím'
-      } else if (res.bCallsA === 'Ông Bác') {
-        bCallsA = 'Bà Bác'
+      } else if (SPOUSE_OF_KIN_TERM[res.bCallsA]) {
+        bCallsA = SPOUSE_OF_KIN_TERM[res.bCallsA]
       } else {
         bCallsA =
           (personA.gender === 'male' ? 'Chồng' : 'Vợ') + ' của ' + res.bCallsA
@@ -565,22 +594,8 @@ export function computeKinship(
         aCallsB = 'Chị dâu (họ)'
       } else if (res.aCallsB.includes('Em')) {
         aCallsB = personB.gender === 'male' ? 'Em rể (họ)' : 'Em dâu (họ)'
-      } else if (res.aCallsB === 'Chú') {
-        aCallsB = 'Cô'
-      } else if (res.aCallsB === 'Chú họ') {
-        aCallsB = 'Thím họ'
-      } else if (res.aCallsB === 'Cô') {
-        aCallsB = 'Chú'
-      } else if (res.aCallsB === 'Cậu') {
-        aCallsB = 'Dì'
-      } else if (res.aCallsB === 'Dì') {
-        aCallsB = 'Cậu'
-      } else if (res.aCallsB === 'Bà Cô') {
-        aCallsB = 'Ông Dượng'
-      } else if (res.aCallsB === 'Ông Chú') {
-        aCallsB = 'Bà Thím'
-      } else if (res.aCallsB === 'Ông Bác') {
-        aCallsB = 'Bà Bác'
+      } else if (SPOUSE_OF_KIN_TERM[res.aCallsB]) {
+        aCallsB = SPOUSE_OF_KIN_TERM[res.aCallsB]
       } else {
         aCallsB =
           (personB.gender === 'male' ? 'Chồng' : 'Vợ') + ' của ' + res.aCallsB
