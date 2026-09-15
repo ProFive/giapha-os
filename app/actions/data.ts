@@ -31,6 +31,8 @@ interface PersonExport {
   birth_order: number | null
   generation: number | null
   other_names: string | null
+  dharma_name: string | null
+  age_at_death: number | null
   avatar_url: string | null
   note: string | null
   // DB-managed fields (kept in export for traceability, stripped on import)
@@ -122,7 +124,12 @@ function validateImportPayload(input: unknown, t: Translator): string | null {
     }
     if (!['male', 'female', 'other'].includes(String(row.gender)))
       return t('invalidGender')
-    for (const field of ['other_names', 'avatar_url', 'note']) {
+    for (const field of [
+      'other_names',
+      'dharma_name',
+      'avatar_url',
+      'note'
+    ]) {
       if (!isShortText(row[field], 2000)) return t('fieldTooLong', { field })
     }
   }
@@ -216,6 +223,8 @@ function sanitizePerson(
     birth_order: p.birth_order ?? null,
     generation: p.generation ?? null,
     other_names: p.other_names ?? null,
+    dharma_name: p.dharma_name ?? null,
+    age_at_death: p.age_at_death ?? null,
     avatar_url: p.avatar_url ?? null,
     note: p.note ?? null
   }

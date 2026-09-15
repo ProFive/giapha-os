@@ -205,6 +205,14 @@ export default function MemberDetailContent({
                 </span>
               </p>
             )}
+            {person.dharma_name && (
+              <p className='mt-1.5 text-sm font-medium text-stone-600 italic sm:text-sm'>
+                {t('dharmaName')}:{' '}
+                <span className='font-medium text-stone-700 not-italic'>
+                  {person.dharma_name}
+                </span>
+              </p>
+            )}
 
             <div className='mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3'>
               {/* Birth Card */}
@@ -326,7 +334,7 @@ export default function MemberDetailContent({
 
               {/* Age Card */}
               {(() => {
-                const ageData = calculateAge(
+                const calculated = calculateAge(
                   person.birth_year,
                   person.birth_month,
                   person.birth_day,
@@ -335,6 +343,12 @@ export default function MemberDetailContent({
                   person.death_day,
                   isDeceased
                 )
+                // An explicitly recorded age at death wins over the computed
+                // one: it is often the only figure known for older ancestors.
+                const ageData =
+                  isDeceased && person.age_at_death != null
+                    ? { age: person.age_at_death, isDeceased: true }
+                    : calculated
                 if (!ageData) return null
                 return (
                   <motion.div

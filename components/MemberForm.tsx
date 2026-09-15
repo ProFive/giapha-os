@@ -48,6 +48,10 @@ export default function MemberForm({
   // Form states
   const [fullName, setFullName] = useState(initialData?.full_name || '')
   const [otherNames, setOtherNames] = useState(initialData?.other_names || '')
+  const [dharmaName, setDharmaName] = useState(initialData?.dharma_name || '')
+  const [ageAtDeath, setAgeAtDeath] = useState<number | ''>(
+    initialData?.age_at_death || ''
+  )
   const [gender, setGender] = useState<Gender>(initialData?.gender || 'male')
   const [birthYear, setBirthYear] = useState<number | ''>(
     initialData?.birth_year || ''
@@ -335,6 +339,9 @@ export default function MemberForm({
         birth_order: birthOrder === '' ? null : Number(birthOrder),
         generation: generation === '' ? null : Number(generation),
         other_names: otherNames || null,
+        dharma_name: dharmaName.trim() || null,
+        age_at_death:
+          isDeceased && ageAtDeath !== '' ? Number(ageAtDeath) : null,
         avatar_url: url,
         note: note || null
       })
@@ -640,7 +647,20 @@ export default function MemberForm({
               )}
             </AnimatePresence>
           </div>
-
+          
+          <div className='md:col-span-1'>
+            <label className='mb-1.5 block text-sm font-medium text-stone-700'>
+              {t('dharmaName')}
+            </label>
+            <input
+              type='text'
+              value={dharmaName}
+              onChange={(e) => setDharmaName(e.target.value)}
+              className={inputClasses}
+              placeholder={t('dharmaNamePlaceholder')}
+            />
+          </div>
+          
           <div className='mt-2 md:col-span-2'>
             <label className='mb-2.5 block text-sm font-medium text-stone-700'>
               {t('avatar')}
@@ -927,6 +947,31 @@ export default function MemberForm({
                           }
                           className={inputClasses}
                         />
+                      </div>
+                    </div>
+
+                    {/* Age at death */}
+                    <div>
+                      <label className='mb-2 block text-sm font-medium text-stone-700'>
+                        {t('ageAtDeath')}
+                      </label>
+                      <div className='relative'>
+                        <input
+                          type='number'
+                          min='0'
+                          max='150'
+                          placeholder={t('ageAtDeathPlaceholder')}
+                          value={ageAtDeath}
+                          onChange={(e) =>
+                            setAgeAtDeath(
+                              e.target.value ? Number(e.target.value) : ''
+                            )
+                          }
+                          className={`${inputClasses} pr-16`}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-sm text-stone-500'>
+                          {t('ageAtDeathUnit')}
+                        </div>
                       </div>
                     </div>
                   </div>

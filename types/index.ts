@@ -49,6 +49,8 @@ export interface Person {
   birth_order: number | null
   generation: number | null
   other_names: string | null
+  dharma_name: string | null
+  age_at_death: number | null
 }
 
 export interface Relationship {
