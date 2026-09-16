@@ -954,11 +954,11 @@ export const messages = {
     kinshipPageTitle: 'Kinship finder',
     kinshipPageDescription:
       'Choose two members to automatically calculate how they address each other based on family relationships',
-    prayerForPeacePageTitle: 'Blessing list',
+    prayerForPeacePageTitle: 'Prayer for peace',
     prayerForPeacePageDescription:
-      'Choose a household head to build a blessing list of the head and all living descendants and their spouses',
+      'Choose a household head to build a prayer for peace of the head and all living descendants and their spouses',
     prayerForPeaceDescriptionShort:
-      'Build a blessing list for each household head',
+      'Build a prayer for peace for each household head',
     prayerForPeaceHost: 'Household head',
     prayerForPeaceSelectHost: 'Choose a household head...',
     prayerForPeaceStt: 'No.',
@@ -968,7 +968,7 @@ export const messages = {
     prayerForPeacePrint: 'Print list',
     prayerForPeaceExport: 'Export to Excel',
     prayerForPeaceCathedral: 'Main ancestral hall',
-    prayerForPeaceEmpty: 'Choose a household head to see the blessing list',
+    prayerForPeaceEmpty: 'Choose a household head to see the prayer for peace',
     lineagePageTitle: 'Lineage order',
     lineagePageDescription:
       'Automatically calculate and update generations, birth order, and in-law status for all members. Preview the changes before applying them.',
