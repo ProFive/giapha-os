@@ -104,3 +104,60 @@ export function getFilteredTreeData(
     children: childrenList
   }
 }
+
+/**
+ * Danh sách cầu an: gia chủ và toàn bộ con cháu còn sống, kèm vợ/chồng và dâu/rể.
+ * Vợ/chồng của gia chủ đứng ngay sau gia chủ, sau đó duyệt theo từng đời,
+ * mỗi người con đứng ngay trước vợ/chồng của họ.
+ * Người đã mất vẫn được duyệt qua để không bỏ sót con cháu của họ,
+ * nhưng bị loại khỏi kết quả cuối cùng.
+ */
+export function buildPrayerForPeaceList(
+  rootId: string,
+  persons: Person[],
+  relationships: Relationship[]
+): Person[] {
+  const personsMap = new Map(persons.map((p) => [p.id, p]))
+  const root = personsMap.get(rootId)
+  if (!root) return []
+
+  const adj = buildAdjacencyLists(relationships, personsMap)
+  const result: Person[] = [root]
+  const seen = new Set<string>([rootId])
+
+  // Vợ/chồng của gia chủ đứng ngay sau gia chủ.
+  const rootSpouses = adj.spousesByPersonId.get(rootId) || []
+  rootSpouses.forEach(({ person: spouse }) => {
+    if (seen.has(spouse.id)) return
+    seen.add(spouse.id)
+    result.push(spouse)
+  })
+
+  // Chỉ đi tiếp theo huyết thống để không kéo theo con riêng của dâu/rể.
+  let currentLevel: Person[] = [root]
+
+  while (currentLevel.length > 0) {
+    const nextLevel: Person[] = []
+
+    currentLevel.forEach((parent) => {
+      const children = adj.childrenByPersonId.get(parent.id) || []
+      children.forEach((child) => {
+        if (seen.has(child.id)) return
+        seen.add(child.id)
+        nextLevel.push(child)
+        result.push(child)
+
+        const spouses = adj.spousesByPersonId.get(child.id) || []
+        spouses.forEach(({ person: spouse }) => {
+          if (seen.has(spouse.id)) return
+          seen.add(spouse.id)
+          result.push(spouse)
+        })
+      })
+    })
+
+    currentLevel = nextLevel
+  }
+
+  return result.filter((p) => !p.is_deceased)
+}

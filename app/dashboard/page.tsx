@@ -11,6 +11,7 @@ import {
   Database,
   Flower2,
   GitMerge,
+  HeartHandshake,
   Network,
   Star,
   Users,
@@ -80,6 +81,15 @@ export default async function DashboardLaunchpad() {
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200/60',
       hoverColor: 'hover:border-blue-400 '
+    },
+    {
+      title: t('prayerForPeacePageTitle'),
+      description: t('prayerForPeaceDescriptionShort'),
+      icon: <HeartHandshake className='size-8 text-emerald-600' />,
+      href: '/dashboard/prayer-for-peace',
+      bgColor: 'bg-emerald-50',
+      borderColor: 'border-emerald-200/60',
+      hoverColor: 'hover:border-emerald-400 '
     },
     {
       title: t('statsPageTitle'),

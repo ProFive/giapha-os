@@ -43,8 +43,7 @@ export const messages = {
     adminConfirmResetPassword:
       'Đặt lại mật khẩu của người dùng này về mật khẩu mặc định?',
     adminPasswordReset: 'Đã đặt lại mật khẩu về mặc định.',
-    adminUnknownResetPasswordError:
-      'Lỗi không xác định khi đặt lại mật khẩu',
+    adminUnknownResetPasswordError: 'Lỗi không xác định khi đặt lại mật khẩu',
     adminDemoCreateNotice:
       'Đây là trang demo, chức năng tạo người dùng bị hạn chế.',
     adminCreated:
@@ -130,6 +129,19 @@ export const messages = {
     kinshipPageTitle: 'Tra cứu danh xưng',
     kinshipPageDescription:
       'Chọn hai thành viên để tự động tính cách gọi theo quan hệ gia phả',
+    prayerForPeacePageTitle: 'Danh sách cầu an',
+    prayerForPeacePageDescription:
+      'Chọn gia chủ để lập danh sách cầu an gồm gia chủ và toàn bộ con cháu, dâu rể còn sống',
+    prayerForPeaceDescriptionShort: 'Lập danh sách cầu an theo từng gia chủ',
+    prayerForPeaceHost: 'Gia chủ',
+    prayerForPeaceSelectHost: 'Chọn gia chủ...',
+    prayerForPeaceStt: 'STT',
+    prayerForPeaceDharmaName: 'Pháp danh',
+    prayerForPeaceAge: 'Tuổi',
+    prayerForPeaceResidence: 'Địa chỉ thường trú',
+    prayerForPeacePrint: 'In danh sách',
+    prayerForPeaceExport: 'Xuất Excel',
+    prayerForPeaceEmpty: 'Chọn gia chủ để xem danh sách cầu an',
     lineagePageTitle: 'Thứ tự gia phả',
     lineagePageDescription:
       'Tự động tính toán và cập nhật thế hệ, thứ tự sinh và trạng thái Dâu/Rể cho tất cả thành viên. Xem preview trước khi áp dụng.',
@@ -853,8 +865,7 @@ export const messages = {
     adminConfirmResetPassword:
       'Reset the password for this user to the default password?',
     adminPasswordReset: 'Password has been reset to the default.',
-    adminUnknownResetPasswordError:
-      'Unknown error while resetting password',
+    adminUnknownResetPasswordError: 'Unknown error while resetting password',
     adminDemoCreateNotice: 'This is a demo site; creating users is restricted.',
     adminCreated: 'User created successfully! They can log in now.',
     adminUnknownCreateError: 'Unknown error while creating user',
@@ -942,6 +953,20 @@ export const messages = {
     kinshipPageTitle: 'Kinship finder',
     kinshipPageDescription:
       'Choose two members to automatically calculate how they address each other based on family relationships',
+    prayerForPeacePageTitle: 'Blessing list',
+    prayerForPeacePageDescription:
+      'Choose a household head to build a blessing list of the head and all living descendants and their spouses',
+    prayerForPeaceDescriptionShort:
+      'Build a blessing list for each household head',
+    prayerForPeaceHost: 'Household head',
+    prayerForPeaceSelectHost: 'Choose a household head...',
+    prayerForPeaceStt: 'No.',
+    prayerForPeaceDharmaName: 'Dharma name',
+    prayerForPeaceAge: 'Age',
+    prayerForPeaceResidence: 'Permanent address',
+    prayerForPeacePrint: 'Print list',
+    prayerForPeaceExport: 'Export to Excel',
+    prayerForPeaceEmpty: 'Choose a household head to see the blessing list',
     lineagePageTitle: 'Lineage order',
     lineagePageDescription:
       'Automatically calculate and update generations, birth order, and in-law status for all members. Preview the changes before applying them.',
