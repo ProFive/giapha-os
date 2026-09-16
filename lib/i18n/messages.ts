@@ -141,6 +141,7 @@ export const messages = {
     prayerForPeaceResidence: 'Địa chỉ thường trú',
     prayerForPeacePrint: 'In danh sách',
     prayerForPeaceExport: 'Xuất Excel',
+    prayerForPeaceCathedral: 'Nhà thờ lớn',
     prayerForPeaceEmpty: 'Chọn gia chủ để xem danh sách cầu an',
     lineagePageTitle: 'Thứ tự gia phả',
     lineagePageDescription:
@@ -966,6 +967,7 @@ export const messages = {
     prayerForPeaceResidence: 'Permanent address',
     prayerForPeacePrint: 'Print list',
     prayerForPeaceExport: 'Export to Excel',
+    prayerForPeaceCathedral: 'Main ancestral hall',
     prayerForPeaceEmpty: 'Choose a household head to see the blessing list',
     lineagePageTitle: 'Lineage order',
     lineagePageDescription:

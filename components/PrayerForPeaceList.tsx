@@ -22,6 +22,7 @@ export default function PrayerForPeaceList({
 }: Props) {
   const { t } = useI18n()
   const [hostId, setHostId] = useState<string | null>(null)
+  const [isCathedral, setIsCathedral] = useState(false)
 
   const livingPersons = useMemo(
     () => persons.filter((p) => !p.is_deceased),
@@ -33,8 +34,12 @@ export default function PrayerForPeaceList({
 
   const rows = useMemo(
     () =>
-      hostId ? buildPrayerForPeaceList(hostId, persons, relationships) : [],
-    [hostId, persons, relationships]
+      hostId
+        ? buildPrayerForPeaceList(hostId, persons, relationships, {
+            includeFatherSiblings: isCathedral
+          })
+        : [],
+    [hostId, persons, relationships, isCathedral]
   )
 
   const tableRows = useMemo(
@@ -95,13 +100,25 @@ export default function PrayerForPeaceList({
   return (
     <div className='pb-12'>
       <div className='prayer-for-peace-no-print mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-        <PersonSelector
-          persons={livingPersons}
-          selectedId={hostId}
-          onSelect={setHostId}
-          label={t('prayerForPeaceHost')}
-          placeholder={t('prayerForPeaceSelectHost')}
-        />
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-end'>
+          <PersonSelector
+            persons={livingPersons}
+            selectedId={hostId}
+            onSelect={setHostId}
+            label={t('prayerForPeaceHost')}
+            placeholder={t('prayerForPeaceSelectHost')}
+          />
+
+          <label className='flex cursor-pointer items-center gap-2.5 py-2.5 text-sm font-medium text-stone-700 select-none'>
+            <input
+              type='checkbox'
+              checked={isCathedral}
+              onChange={(e) => setIsCathedral(e.target.checked)}
+              className='size-4 rounded border-stone-300 text-amber-600 accent-amber-600 focus:ring-amber-400'
+            />
+            {t('prayerForPeaceCathedral')}
+          </label>
+        </div>
 
         {rows.length > 0 && (
           <div className='flex gap-3'>
