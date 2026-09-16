@@ -33,7 +33,7 @@ export default async function PrayerForPeacePage() {
 
   return (
     <div className='relative flex w-full flex-1 flex-col pb-12'>
-      <div className='prayer-for-peace-no-print relative z-20 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8'>
+      <div className='no-print relative z-20 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8'>
         <h1 className='title'>{t('prayerForPeacePageTitle')}</h1>
         <p className='mt-1 text-sm text-stone-500'>
           {t('prayerForPeacePageDescription')}

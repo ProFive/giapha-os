@@ -205,3 +205,31 @@ export function buildPrayerForPeaceList(
 
   return result.filter((p) => !p.is_deceased)
 }
+
+/**
+ * Danh sách kỳ siêu: toàn bộ hương linh (người đã mất) trong gia phả,
+ * người được chọn đứng đầu, phần còn lại xếp theo đời rồi thứ tự sinh.
+ * Người chưa rõ đời/thứ tự sinh xếp về cuối.
+ */
+export function buildMemorialList(mainId: string, persons: Person[]): Person[] {
+  const deceased = persons.filter((p) => p.is_deceased)
+  const main = deceased.find((p) => p.id === mainId)
+
+  const rest = deceased
+    .filter((p) => p.id !== mainId)
+    .sort((a, b) => {
+      const byGeneration =
+        (a.generation ?? Infinity) - (b.generation ?? Infinity)
+      if (byGeneration) return byGeneration
+
+      const byOrder = (a.birth_order ?? Infinity) - (b.birth_order ?? Infinity)
+      if (byOrder) return byOrder
+
+      const byYear = (a.birth_year ?? Infinity) - (b.birth_year ?? Infinity)
+      if (byYear) return byYear
+
+      return a.full_name.localeCompare(b.full_name, 'vi')
+    })
+
+  return main ? [main, ...rest] : rest
+}

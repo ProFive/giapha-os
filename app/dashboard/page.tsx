@@ -92,6 +92,15 @@ export default async function DashboardLaunchpad() {
       hoverColor: 'hover:border-emerald-400 '
     },
     {
+      title: t('memorialPageTitle'),
+      description: t('memorialDescriptionShort'),
+      icon: <Flower2 className='size-8 text-violet-600' />,
+      href: '/dashboard/memorial',
+      bgColor: 'bg-violet-50',
+      borderColor: 'border-violet-200/60',
+      hoverColor: 'hover:border-violet-400 '
+    },
+    {
       title: t('statsPageTitle'),
       description: t('statisticsDescription'),
       icon: <BarChart2 className='size-8 text-purple-600' />,

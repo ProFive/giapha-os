@@ -110,29 +110,29 @@ select {
   @apply font-sans text-sm leading-[1.4] font-medium;
 }
 
-/* Danh sách cầu an: chỉ in bảng, ẩn khung dashboard.
+/* Trang chỉ in phần #print-root (danh sách cầu an, danh sách kỳ siêu).
    Dùng display:none thay cho visibility vì :has() mang specificity của
    argument, khiến rule ẩn thắng rule hiện và in ra trang trắng. */
 @media print {
-  body:has(#prayer-for-peace-print) header,
-  body:has(#prayer-for-peace-print) footer,
-  .prayer-for-peace-no-print {
+  body:has(#print-root) header,
+  body:has(#print-root) footer,
+  .no-print {
     display: none !important;
   }
 
-  #prayer-for-peace-print {
+  #print-root {
     border: none;
     border-radius: 0;
   }
 
   /* Kẻ khung bảng để in ra giấy đọc được, không phụ thuộc màu nền. */
-  #prayer-for-peace-print table {
+  #print-root table {
     width: 100%;
     border-collapse: collapse;
   }
 
-  #prayer-for-peace-print th,
-  #prayer-for-peace-print td {
+  #print-root th,
+  #print-root td {
     border: 1px solid #a8a29e;
     padding: 6px 10px;
     color: #000;

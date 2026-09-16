@@ -100,3 +100,19 @@ export async function buildXlsxBlob(
 
   return zip.generateAsync({ type: 'blob', mimeType: XLSX_MIME })
 }
+
+/** Tạo file .xlsx rồi tải về ngay trên trình duyệt. */
+export async function downloadXlsx(
+  fileName: string,
+  sheetName: string,
+  rows: XlsxCell[][],
+  columnWidths?: number[]
+): Promise<void> {
+  const blob = await buildXlsxBlob(sheetName, rows, columnWidths)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
+}
