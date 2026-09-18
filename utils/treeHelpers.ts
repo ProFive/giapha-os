@@ -207,29 +207,99 @@ export function buildPrayerForPeaceList(
 }
 
 /**
- * Danh sách kỳ siêu: toàn bộ hương linh (người đã mất) trong gia phả,
- * người được chọn đứng đầu, phần còn lại xếp theo đời rồi thứ tự sinh.
- * Người chưa rõ đời/thứ tự sinh xếp về cuối.
+ * Tính đời của từng người so với người gốc: cha mẹ là -1, con là +1,
+ * vợ/chồng cùng đời. Lan theo cả hai chiều nên phủ được mọi người nối
+ * với người gốc qua huyết thống hoặc hôn nhân.
+ * Cột `generation` trong CSDL thường bỏ trống nên không dùng được.
  */
-export function buildMemorialList(mainId: string, persons: Person[]): Person[] {
+function buildRelativeGenerations(
+  rootId: string,
+  relationships: Relationship[]
+): Map<string, number> {
+  // Cạnh vô hướng kèm mức chênh đời khi đi từ `from` sang `to`.
+  const edges = new Map<string, { to: string; delta: number }[]>()
+  const addEdge = (from: string, to: string, delta: number) => {
+    if (!edges.has(from)) edges.set(from, [])
+    edges.get(from)!.push({ to, delta })
+  }
+
+  relationships.forEach((r) => {
+    if (r.type === 'marriage') {
+      addEdge(r.person_a, r.person_b, 0)
+      addEdge(r.person_b, r.person_a, 0)
+    } else {
+      addEdge(r.person_a, r.person_b, 1)
+      addEdge(r.person_b, r.person_a, -1)
+    }
+  })
+
+  const generations = new Map<string, number>([[rootId, 0]])
+  let frontier = [rootId]
+
+  while (frontier.length > 0) {
+    const next: string[] = []
+    frontier.forEach((id) => {
+      const level = generations.get(id)!
+      edges.get(id)?.forEach(({ to, delta }) => {
+        if (generations.has(to)) return
+        generations.set(to, level + delta)
+        next.push(to)
+      })
+    })
+    frontier = next
+  }
+
+  return generations
+}
+
+/**
+ * Danh sách kỳ siêu: toàn bộ hương linh (người đã mất) trong gia phả.
+ * Người được chọn đứng đầu, kế đến là vợ/chồng của họ, phần còn lại xếp
+ * theo đời từ trên xuống (cha mẹ, ông bà trước con cháu) rồi tới thứ tự sinh.
+ * Người không nối được với người được chọn xếp về cuối.
+ */
+export function buildMemorialList(
+  mainId: string,
+  persons: Person[],
+  relationships: Relationship[] = []
+): Person[] {
   const deceased = persons.filter((p) => p.is_deceased)
   const main = deceased.find((p) => p.id === mainId)
 
+  const generations = buildRelativeGenerations(mainId, relationships)
+
+  const spouseIds = new Set<string>()
+  relationships.forEach((r) => {
+    if (r.type !== 'marriage') return
+    if (r.person_a === mainId) spouseIds.add(r.person_b)
+    else if (r.person_b === mainId) spouseIds.add(r.person_a)
+  })
+
+  const byLineage = (a: Person, b: Person) => {
+    const byGeneration =
+      (generations.get(a.id) ?? Infinity) - (generations.get(b.id) ?? Infinity)
+    if (byGeneration) return byGeneration
+
+    const byOrder = (a.birth_order ?? Infinity) - (b.birth_order ?? Infinity)
+    if (byOrder) return byOrder
+
+    const byYear = (a.birth_year ?? Infinity) - (b.birth_year ?? Infinity)
+    if (byYear) return byYear
+
+    // Cùng đời mà không rõ thứ tự sinh: người trong họ đứng trước dâu/rể.
+    const byBlood = Number(a.is_in_law) - Number(b.is_in_law)
+    if (byBlood) return byBlood
+
+    return a.full_name.localeCompare(b.full_name, 'vi')
+  }
+
+  const spouses = deceased
+    .filter((p) => p.id !== mainId && spouseIds.has(p.id))
+    .sort(byLineage)
+
   const rest = deceased
-    .filter((p) => p.id !== mainId)
-    .sort((a, b) => {
-      const byGeneration =
-        (a.generation ?? Infinity) - (b.generation ?? Infinity)
-      if (byGeneration) return byGeneration
+    .filter((p) => p.id !== mainId && !spouseIds.has(p.id))
+    .sort(byLineage)
 
-      const byOrder = (a.birth_order ?? Infinity) - (b.birth_order ?? Infinity)
-      if (byOrder) return byOrder
-
-      const byYear = (a.birth_year ?? Infinity) - (b.birth_year ?? Infinity)
-      if (byYear) return byYear
-
-      return a.full_name.localeCompare(b.full_name, 'vi')
-    })
-
-  return main ? [main, ...rest] : rest
+  return main ? [main, ...spouses, ...rest] : [...spouses, ...rest]
 }

@@ -16,6 +16,10 @@ export default async function MemorialPage() {
     .select('*')
     .order('birth_year', { ascending: true, nullsFirst: false })
 
+  const { data: relationships } = await supabase
+    .from('relationships')
+    .select('*')
+
   return (
     <div className='relative flex w-full flex-1 flex-col pb-12'>
       <div className='no-print relative z-20 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8'>
@@ -26,7 +30,10 @@ export default async function MemorialPage() {
       </div>
 
       <main className='mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 lg:px-8'>
-        <MemorialList persons={persons ?? []} />
+        <MemorialList
+          persons={persons ?? []}
+          relationships={relationships ?? []}
+        />
       </main>
     </div>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { Person } from '@/types'
+import { Person, Relationship } from '@/types'
 import { calculateAge } from '@/utils/dateHelpers'
 import { buildMemorialList } from '@/utils/treeHelpers'
 import { downloadXlsx, XlsxCell } from '@/utils/xlsx'
@@ -11,9 +11,10 @@ import PersonSelector from './PersonSelector'
 
 interface Props {
   persons: Person[]
+  relationships: Relationship[]
 }
 
-export default function MemorialList({ persons }: Props) {
+export default function MemorialList({ persons, relationships }: Props) {
   const { t } = useI18n()
   const [mainId, setMainId] = useState<string | null>(null)
 
@@ -25,8 +26,8 @@ export default function MemorialList({ persons }: Props) {
   const main = deceasedPersons.find((p) => p.id === mainId) ?? null
 
   const rows = useMemo(
-    () => (mainId ? buildMemorialList(mainId, persons) : []),
-    [mainId, persons]
+    () => (mainId ? buildMemorialList(mainId, persons, relationships) : []),
+    [mainId, persons, relationships]
   )
 
   const tableRows = useMemo(
