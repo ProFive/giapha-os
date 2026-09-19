@@ -22,6 +22,21 @@ export async function changeUserRole(userId: string, newRole: UserRole) {
   return { success: true }
 }
 
+export async function setUserPerson(userId: string, personId: string | null) {
+  const supabase = await getSupabase()
+  const { error } = await supabase.rpc('set_user_person', {
+    target_user_id: userId,
+    target_person_id: personId
+  })
+
+  if (error) {
+    console.error('Error linking user to person:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/dashboard/users')
+}
+
 export async function deleteUser(userId: string) {
   const supabase = await getSupabase()
   const { error } = await supabase.rpc('delete_user', {

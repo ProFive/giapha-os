@@ -5,11 +5,13 @@ import {
   changeUserRole,
   deleteUser,
   resetUserPassword,
+  setUserPerson,
   toggleUserStatus
 } from '@/app/actions/user'
 import config from '@/app/config'
+import PersonSelector from '@/components/PersonSelector'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { AdminUserData, UserRole } from '@/types'
+import { AdminUserData, Person, UserRole } from '@/types'
 import { AnimatePresence, motion } from 'framer-motion'
 import { KeyRound, Trash } from 'lucide-react'
 import { useState } from 'react'
@@ -17,6 +19,7 @@ import { useState } from 'react'
 interface AdminUserListProps {
   initialUsers: AdminUserData[]
   currentUserId: string
+  persons: Person[]
 }
 
 interface Notification {
@@ -26,7 +29,8 @@ interface Notification {
 
 export default function AdminUserList({
   initialUsers,
-  currentUserId
+  currentUserId,
+  persons
 }: AdminUserListProps) {
   const { t } = useI18n()
   const isDemo =
@@ -68,6 +72,28 @@ export default function AdminUserList({
       const msg =
         error instanceof Error ? error.message : t('adminUnknownRoleError')
       showNotification(msg, 'error')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handlePersonChange = async (userId: string, personId: string | null) => {
+    if (isDemo) {
+      showNotification(t('adminDemoNotice'), 'info')
+      return
+    }
+    try {
+      setLoadingId(userId)
+      const result = await setUserPerson(userId, personId)
+
+      if (result?.error) {
+        showNotification(t('newsLinkedPersonError'), 'error')
+        return
+      }
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, person_id: personId } : u))
+      )
     } finally {
       setLoadingId(null)
     }
@@ -279,6 +305,9 @@ export default function AdminUserList({
                   {t('adminRole')}
                 </th>
                 <th className='px-6 py-4 text-sm font-medium text-stone-500'>
+                  {t('newsLinkedPerson')}
+                </th>
+                <th className='px-6 py-4 text-sm font-medium text-stone-500'>
                   {t('adminStatus')}
                 </th>
                 <th className='px-6 py-4 text-sm font-medium text-stone-500'>
@@ -326,6 +355,18 @@ export default function AdminUserList({
                         <option value='member'>{t('adminMemberRole')}</option>
                       </select>
                     )}
+                  </td>
+                  <td className='px-6 py-4'>
+                    <PersonSelector
+                      persons={persons}
+                      selectedId={user.person_id}
+                      onSelect={(id) => handlePersonChange(user.id, id)}
+                      label={t('newsLinkedPerson')}
+                      placeholder={t('newsLinkedPersonNone')}
+                      className='w-full sm:w-64'
+                      showAllOption
+                      allOptionLabel={t('newsLinkedPersonNone')}
+                    />
                   </td>
                   <td className='px-6 py-4'>
                     <button
@@ -388,7 +429,7 @@ export default function AdminUserList({
               {users.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={6}
                     className='px-6 py-8 text-center text-stone-500'>
                     {t('adminNoUsers')}
                   </td>

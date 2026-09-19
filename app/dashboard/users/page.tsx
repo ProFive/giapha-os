@@ -24,6 +24,11 @@ export default async function AdminUsersPage() {
 
   const typedUsers = (users as AdminUserData[]) || []
 
+  const { data: persons } = await supabase
+    .from('persons')
+    .select('*')
+    .order('full_name', { ascending: true })
+
   return (
     <main className='relative flex w-full flex-1 flex-col overflow-auto bg-stone-50/50 pt-8'>
       {/* Decorative background blurs */}
@@ -39,7 +44,11 @@ export default async function AdminUsersPage() {
             </p>
           </div>
         </div>
-        <AdminUserList initialUsers={typedUsers} currentUserId={profile.id} />
+        <AdminUserList
+          initialUsers={typedUsers}
+          currentUserId={profile.id}
+          persons={persons ?? []}
+        />
       </div>
     </main>
   )
