@@ -26,7 +26,9 @@ export default async function NewsPage() {
     )
     .order('created_at', { ascending: false })
 
-  const posts = (postsData || []) as (NewsPost & { author: NewsAuthor | null })[]
+  const posts = (postsData || []) as (NewsPost & {
+    author: NewsAuthor | null
+  })[]
 
   // Đếm bình luận trong một truy vấn thay vì mỗi bài một truy vấn.
   const { data: commentRows } = await supabase
@@ -40,11 +42,17 @@ export default async function NewsPage() {
 
   const signedPosts = await Promise.all(
     posts.map(async (post) => {
+      // Đường dẫn gốc trong bucket, chuẩn hoá nhưng KHÔNG lọc: một ảnh ký
+      // thất bại vẫn phải sống sót qua vòng round-trip edit tiếp theo, dù
+      // không hiển thị được (xem NewsPostModal / types.NewsPost.image_paths).
+      const imagePaths = (post.image_urls || []).map((value) =>
+        getNewsStoragePath(value)
+      )
       const image_urls = await Promise.all(
-        (post.image_urls || []).map(async (value) => {
+        imagePaths.map(async (path) => {
           const { data } = await supabase.storage
             .from('news')
-            .createSignedUrl(getNewsStoragePath(value), 60 * 60)
+            .createSignedUrl(path, 60 * 60)
           return data?.signedUrl || ''
         })
       )
@@ -52,15 +60,29 @@ export default async function NewsPage() {
       return {
         ...post,
         image_urls: image_urls.filter(Boolean),
+        image_paths: imagePaths,
         comment_count: commentCount.get(post.id) ?? 0
       }
     })
   )
 
+  // router.refresh() giữ nguyên state của NewsClient theo thiết kế của React,
+  // nên bài mới/bài vừa sửa không tự hiện nếu không đổi `key`. Đếm bài không
+  // đổi khi sửa nội dung (length như nhau), nên phải kết hợp với updated_at
+  // mới nhất trong danh sách để remount đúng lúc cả khi tạo lẫn khi sửa.
+  const latestUpdatedAt = signedPosts.reduce(
+    (latest, post) => (post.updated_at > latest ? post.updated_at : latest),
+    ''
+  )
+
   return (
     <main className='relative flex w-full flex-1 flex-col overflow-auto bg-stone-50/50 pt-8'>
       <div className='relative z-10 mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 lg:px-8'>
-        <NewsClient posts={signedPosts} canPost={canPost} />
+        <NewsClient
+          key={`${signedPosts.length}-${latestUpdatedAt}`}
+          posts={signedPosts}
+          canPost={canPost}
+        />
       </div>
     </main>
   )

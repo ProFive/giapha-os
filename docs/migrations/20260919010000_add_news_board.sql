@@ -128,8 +128,14 @@ CREATE POLICY "Authors and admins can delete news comments" ON public.news_comme
 -- TRUNCATE/REFERENCES/TRIGGER thừa từ default ACL, và TRUNCATE trên
 -- news_posts sẽ xóa sạch cả news_comments qua ON DELETE CASCADE, bất kể policy
 -- viết gì.
+-- UPDATE bị giới hạn theo cột (không GRANT UPDATE cả bảng): policy UPDATE chỉ
+-- kiểm tra role qua USING/WITH CHECK, không kiểm tra cột nào bị đổi, nên nếu
+-- GRANT UPDATE cả bảng thì editor có thể tự sửa created_by / author_person_id
+-- của bài người khác - trái với set_news_author(), vốn chỉ là trigger BEFORE
+-- INSERT chứ không chặn UPDATE. Chỉ cấp UPDATE trên các cột client được sửa.
 REVOKE ALL ON public.news_posts FROM anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.news_posts TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.news_posts TO authenticated;
+GRANT UPDATE (title, content, image_urls) ON public.news_posts TO authenticated;
 GRANT ALL ON public.news_posts TO service_role;
 
 REVOKE ALL ON public.news_comments FROM anon, authenticated;

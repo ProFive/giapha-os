@@ -4,7 +4,6 @@ import { createPost, updatePost } from '@/app/actions/news'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { NewsPost } from '@/types'
 import { uploadNewsImage } from '@/utils/supabase/storage'
-import { getNewsStoragePath } from '@/utils/supabase/storage-path'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2, UploadCloud, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -79,9 +78,11 @@ function NewsPostForm({ onClose, onSuccess, initialData }: NewsPostFormProps) {
     setError(null)
 
     try {
-      const uploaded: string[] = (initialData?.image_urls ?? []).map((url) =>
-        getNewsStoragePath(url)
-      )
+      // Dùng lại đường dẫn gốc đã lưu (image_paths), không map ngược từ
+      // image_urls đã ký: một ảnh ký thất bại bị lọc khỏi image_urls nhưng
+      // vẫn phải giữ trong danh sách này, nếu không lần sửa này sẽ ghi đè
+      // DB bằng danh sách bị rút gọn và làm mất ảnh vĩnh viễn.
+      const uploaded: string[] = [...(initialData?.image_paths ?? [])]
       for (const file of files) {
         const { path, error: uploadError } = await uploadNewsImage(file)
         if (uploadError || !path) {

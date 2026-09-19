@@ -35,6 +35,7 @@ export const messages = {
     adminStatusLocked: 'Đã khoá người dùng thành công.',
     adminUnknownRoleError: 'Lỗi không xác định khi đổi quyền',
     adminUnknownStatusError: 'Lỗi không xác định khi đổi trạng thái',
+    adminUnknownPersonError: 'Lỗi không xác định khi gán thành viên',
     adminConfirmDelete:
       'Bạn có chắc chắn muốn xóa user này khỏi hệ thống vĩnh viễn không?',
     adminDeleted: 'Đã xóa người dùng thành công.',
@@ -361,11 +362,11 @@ export const messages = {
     landingViewTree: 'Xem cây gia phả',
     news: 'Bảng tin',
     newsTitle: 'Bảng tin dòng họ',
-    newsDescription:
-      'Thông báo, tin tức và các hoạt động chung của dòng họ.',
+    newsDescription: 'Thông báo, tin tức và các hoạt động chung của dòng họ.',
     newsCreate: 'Đăng bài',
     newsEdit: 'Sửa bài',
     newsDelete: 'Xoá bài',
+    newsCommentDelete: 'Xoá bình luận',
     newsDeleteConfirm: 'Xoá bài viết này và toàn bộ bình luận của nó?',
     newsEmpty: 'Chưa có bài viết nào.',
     newsTitleLabel: 'Tiêu đề',
@@ -902,6 +903,7 @@ export const messages = {
     adminStatusLocked: 'User locked successfully.',
     adminUnknownRoleError: 'Unknown error while changing role',
     adminUnknownStatusError: 'Unknown error while changing status',
+    adminUnknownPersonError: 'Unknown error while linking family member',
     adminConfirmDelete:
       'Are you sure you want to permanently delete this user from the system?',
     adminDeleted: 'User deleted successfully.',
@@ -1238,6 +1240,7 @@ export const messages = {
     newsCreate: 'New post',
     newsEdit: 'Edit post',
     newsDelete: 'Delete post',
+    newsCommentDelete: 'Delete comment',
     newsDeleteConfirm: 'Delete this post and all of its comments?',
     newsEmpty: 'No posts yet.',
     newsTitleLabel: 'Title',

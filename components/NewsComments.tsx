@@ -68,6 +68,7 @@ export default function NewsComments({
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(t('newsCommentDeleteConfirm'))) return
+    setError(null)
     const result = await deleteComment(id)
     if (result?.error) {
       setError(result.error)
@@ -87,7 +88,9 @@ export default function NewsComments({
       ) : (
         <ul className='flex flex-col gap-3'>
           {comments.map((comment) => (
-            <li key={comment.id} className='flex items-start justify-between gap-3'>
+            <li
+              key={comment.id}
+              className='flex items-start justify-between gap-3'>
               <div>
                 <p className='text-xs font-medium text-stone-700'>
                   {comment.author?.full_name ?? t('newsAnonymousAuthor')}
@@ -100,7 +103,7 @@ export default function NewsComments({
                 <button
                   type='button'
                   onClick={() => handleDelete(comment.id)}
-                  aria-label={t('newsDelete')}
+                  aria-label={t('newsCommentDelete')}
                   className='text-stone-400 transition-colors hover:text-rose-600'>
                   <Trash className='size-4' />
                 </button>

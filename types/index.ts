@@ -96,8 +96,14 @@ export interface NewsPost {
   id: string
   title: string
   content: string
-  /** Đường dẫn trong bucket `news`; trang server đổi thành signed URL khi render. */
+  /** Signed URL để hiển thị; đã lọc bỏ những ảnh ký thất bại. */
   image_urls: string[]
+  /**
+   * Đường dẫn gốc trong bucket `news`, chuẩn hoá nhưng KHÔNG lọc theo kết quả
+   * ký URL - dùng để build lại payload khi sửa bài, để một ảnh ký thất bại
+   * không bị rớt khỏi bài vĩnh viễn ở lần sửa tiếp theo.
+   */
+  image_paths: string[]
   author_person_id: string | null
   created_by: string | null
   created_at: string

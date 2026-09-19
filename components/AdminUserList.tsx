@@ -94,6 +94,10 @@ export default function AdminUserList({
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, person_id: personId } : u))
       )
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : t('adminUnknownPersonError')
+      showNotification(msg, 'error')
     } finally {
       setLoadingId(null)
     }
