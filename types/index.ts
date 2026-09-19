@@ -8,6 +8,7 @@ export interface Profile {
   is_active: boolean
   created_at: string
   updated_at: string
+  person_id: string | null
 }
 
 export interface AdminUserData {
@@ -16,6 +17,7 @@ export interface AdminUserData {
   role: UserRole
   is_active: boolean
   created_at: string
+  person_id: string | null
 }
 
 export interface Person {
@@ -80,4 +82,36 @@ export interface GalleryItem {
   created_by: string | null
   // Storage path used to create signed URLs and delete the object.
   storage_path?: string
+}
+
+/** Người trong gia phả đứng tên một bài hoặc một bình luận. */
+export interface NewsAuthor {
+  id: string
+  full_name: string
+  gender: Gender
+  avatar_url: string | null
+}
+
+export interface NewsPost {
+  id: string
+  title: string
+  content: string
+  /** Đường dẫn trong bucket `news`; trang server đổi thành signed URL khi render. */
+  image_urls: string[]
+  author_person_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  author?: NewsAuthor | null
+  comment_count?: number
+}
+
+export interface NewsComment {
+  id: string
+  post_id: string
+  content: string
+  author_person_id: string | null
+  created_by: string | null
+  created_at: string
+  author?: NewsAuthor | null
 }
