@@ -121,14 +121,17 @@ CREATE POLICY "Authors and admins can delete news comments" ON public.news_comme
     OR private.is_admin()
   );
 
-REVOKE ALL ON public.news_posts FROM anon;
+-- REVOKE ALL cả authenticated (không chỉ anon): schema public có default ACL
+-- cấp ALL cho authenticated ngay khi CREATE TABLE (đã xác nhận qua
+-- pg_default_acl trên database thật), gồm cả TRUNCATE - lệnh không bị RLS lọc.
+-- Nếu chỉ GRANT thêm mà không REVOKE ALL trước, authenticated vẫn còn
+-- TRUNCATE/REFERENCES/TRIGGER thừa từ default ACL, và TRUNCATE trên
+-- news_posts sẽ xóa sạch cả news_comments qua ON DELETE CASCADE, bất kể policy
+-- viết gì.
+REVOKE ALL ON public.news_posts FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.news_posts TO authenticated;
 GRANT ALL ON public.news_posts TO service_role;
 
--- REVOKE ALL cả authenticated: schema public có default ACL cấp ALL cho
--- authenticated ngay khi CREATE TABLE (đã xác nhận qua pg_default_acl trên
--- database thật), nên chỉ GRANT thêm SELECT/INSERT/DELETE sẽ không xóa được
--- UPDATE mặc định đó. Bình luận không được sửa, nên phải REVOKE trước.
 REVOKE ALL ON public.news_comments FROM anon, authenticated;
 GRANT SELECT, INSERT, DELETE ON public.news_comments TO authenticated;
 GRANT ALL ON public.news_comments TO service_role;
