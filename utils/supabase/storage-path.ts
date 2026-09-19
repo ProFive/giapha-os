@@ -16,3 +16,8 @@ export function getGalleryStoragePath(value: string): string {
 
   return value.replace(/^\/+/, '')
 }
+
+/** Tách đường dẫn trong bucket `news` ra khỏi URL đã lưu, giống gallery. */
+export function getNewsStoragePath(value: string): string {
+  return getGalleryStoragePath(value)
+}

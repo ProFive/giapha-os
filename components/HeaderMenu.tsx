@@ -11,6 +11,7 @@ import {
   Info,
   KeyRound,
   Network,
+  Newspaper,
   UserCircle,
   Users
 } from 'lucide-react'
@@ -60,6 +61,12 @@ export default function HeaderMenu() {
       href: '/dashboard/members',
       icon: Network,
       label: t('familyTree'),
+      hover: 'hover:bg-amber-50 hover:text-amber-700'
+    },
+    {
+      href: '/dashboard/news',
+      icon: Newspaper,
+      label: t('news'),
       hover: 'hover:bg-amber-50 hover:text-amber-700'
     },
     {
