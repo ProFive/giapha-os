@@ -356,7 +356,7 @@ export const messages = {
       'Vui lòng liên hệ lại với người quản trị dòng họ để được cấp quyền sớm nhất.',
     landingBadge: 'Nền tảng gia phả hiện đại & bảo mật',
     landingDescription:
-      'Gìn giữ và lưu truyền những giá trị, cội nguồn và truyền thống tốt đẹp của dòng họ cho các thế hệ mai sau.',
+      'Gìn giữ cội nguồn – Kết nối các thế hệ – Lưu truyền những giá trị và truyền thống tốt đẹp của dòng họ cho muôn đời mai sau.',
     landingCta: 'Đăng nhập để xem thông tin',
     landingViewTree: 'Xem cây gia phả',
     news: 'Bảng tin',
@@ -1228,7 +1228,7 @@ export const messages = {
       'Please contact your family administrator to receive access as soon as possible.',
     landingBadge: 'A modern and secure family tree platform',
     landingDescription:
-      'Preserve and pass down your family values, roots, and traditions to future generations.',
+      'Preserving our roots – Connecting generations – Passing down the family’s values and cherished traditions for generations to come.',
     landingCta: 'Log in to view information',
     landingViewTree: 'View the family tree',
     news: 'News',
