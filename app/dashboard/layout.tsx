@@ -7,6 +7,8 @@ import { UserProvider } from '@/components/UserProvider'
 import { getProfile, getUser } from '@/utils/supabase/queries'
 import Link from 'next/link'
 import { getServerTranslations } from '@/lib/i18n/server'
+import { isPublicDashboardPath } from '@/lib/publicRoutes'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
@@ -19,7 +21,25 @@ export default async function DashboardLayout({
   const user = await getUser()
 
   if (!user) {
-    redirect('/login')
+    // Guests may read the public pages; everything else needs an account.
+    const pathname = (await headers()).get('x-pathname') ?? ''
+
+    if (!isPublicDashboardPath(pathname)) {
+      redirect('/login')
+    }
+
+    return (
+      <UserProvider user={null} profile={null}>
+        <div className='flex min-h-screen flex-col bg-neutral font-sans text-primary'>
+          <DashboardHeader />
+          {children}
+          <Footer
+            className='mt-auto border-t border-stone-200 bg-white'
+            showDisclaimer={true}
+          />
+        </div>
+      </UserProvider>
+    )
   }
 
   const profile = await getProfile(user.id)

@@ -43,11 +43,11 @@ export default function Footer({
           </a>
           by
           <a
-            href='https://homielab.com'
+            href='https://5ts.io.vn'
             target='_blank'
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1.5 font-medium text-green-600 transition-colors hover:text-amber-700'>
-            HomieLab
+            5Tech Solutions
           </a>
         </p>
       </div>

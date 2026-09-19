@@ -1,7 +1,7 @@
 import DeleteMemberButton from '@/components/DeleteMemberButton'
 import MemberDetailContent from '@/context/MemberDetailContent'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
+import { getProfile, getSupabase, getUser } from '@/utils/supabase/queries'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -14,6 +14,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const { t } = await getServerTranslations()
   const { id } = await params
 
+  const user = await getUser()
   const profile = await getProfile()
 
   const isAdmin = profile?.role === 'admin' && profile.is_active
@@ -76,7 +77,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
       <main className='relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8'>
         <div className='overflow-hidden rounded-2xl border border-stone-200/60 bg-white/60 transition-shadow duration-300'>
           <MemberDetailContent
-            person={person}
+            person={user ? person : { ...person, avatar_url: null }}
             privateData={privateData}
             isAdmin={isAdmin}
             canEdit={canEdit}

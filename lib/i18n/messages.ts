@@ -358,6 +358,7 @@ export const messages = {
     landingDescription:
       'Gìn giữ và lưu truyền những giá trị, cội nguồn và truyền thống tốt đẹp của dòng họ cho các thế hệ mai sau.',
     landingCta: 'Đăng nhập để xem thông tin',
+    landingViewTree: 'Xem cây gia phả',
     featureMembers: 'Quản lý thành viên',
     featureMembersDescription:
       'Cập nhật thông tin chi tiết, tiểu sử và hình ảnh của từng thành viên trong dòng họ một cách nhanh chóng và bảo mật.',
@@ -1200,6 +1201,7 @@ export const messages = {
     landingDescription:
       'Preserve and pass down your family values, roots, and traditions to future generations.',
     landingCta: 'Log in to view information',
+    landingViewTree: 'View the family tree',
     featureMembers: 'Manage members',
     featureMembersDescription:
       'Quickly and securely update detailed information, biographies, and photos for every family member.',

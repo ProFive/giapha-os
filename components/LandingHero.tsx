@@ -73,9 +73,18 @@ export default function LandingHero({ siteName }: LandingHeroProps) {
       </motion.div>
 
       <motion.div
-        className='relative flex w-full flex-col items-center justify-center gap-4 px-4 pt-6 sm:flex-row sm:px-0'
+        className='relative flex w-full flex-col items-center justify-center gap-4 px-4 pt-6 sm:px-0'
         variants={fadeIn}>
         <div className='absolute top-1/2 left-1/2 z-0 hidden h-16 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/30 blur-2xl sm:block'></div>
+        {/* Guests may read the tree without an account, see lib/publicRoutes.ts */}
+        <Link
+          href='/dashboard/members'
+          className='group relative inline-flex w-full items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white/70 px-8 py-4 text-sm font-medium text-stone-700 transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:bg-white hover:text-amber-800 active:translate-y-0 sm:w-auto sm:px-10'>
+          <span className='relative z-10 flex items-center gap-3'>
+            <Network className='size-5 text-amber-700' />
+            {t('landingViewTree')}
+          </span>
+        </Link>
         <Link
           href='/login'
           className='group relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-stone-800 bg-primary px-8 py-4 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-1 hover:border-stone-700 hover:bg-stone-800 active:translate-y-0 sm:w-auto sm:px-10 sm:py-5'>

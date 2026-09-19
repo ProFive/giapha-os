@@ -2,7 +2,7 @@ import { MemberListProvider } from '@/context/MemberListContext'
 import MembersViews from '@/components/MembersViews'
 import MemberDetailModal from '@/components/modal/MemberDetailModal'
 import ViewToggle from '@/components/ViewToggle'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
+import { getProfile, getSupabase, getUser } from '@/utils/supabase/queries'
 
 import { ViewMode } from '@/components/ViewToggle'
 
@@ -14,6 +14,7 @@ export default async function FamilyTreePage({ searchParams }: PageProps) {
   const initialView = view as ViewMode | undefined
   const initialShowAvatar = avatar !== 'hide'
 
+  const user = await getUser()
   const profile = await getProfile()
   const canEdit =
     profile?.is_active === true &&
@@ -33,7 +34,11 @@ export default async function FamilyTreePage({ searchParams }: PageProps) {
     supabase.from('relationships').select('*')
   ])
 
-  const persons = personsRes.data || []
+  // Guests see the tree without photos: /api/avatar stays logged-in only, so
+  // drop the URLs rather than render broken images.
+  const persons = user
+    ? personsRes.data || []
+    : (personsRes.data || []).map((p) => ({ ...p, avatar_url: null }))
   const relationships = relsRes.data || []
 
   // Prepare map and roots for tree views

@@ -20,7 +20,7 @@ export default function MemberDetailModal() {
     showCreateMember,
     setShowCreateMember
   } = useMemberListView()
-  const { isAdmin, isEditor: canEdit, supabase } = useUser()
+  const { user, isAdmin, isEditor: canEdit, supabase } = useUser()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
 
@@ -55,7 +55,8 @@ export default function MemberDetailModal() {
         if (personError || !personData) {
           throw new Error(t('memberLoadError'))
         }
-        setPerson(personData)
+        // Guests never get photos: /api/avatar is logged-in only.
+        setPerson(user ? personData : { ...personData, avatar_url: null })
 
         // 2. Fetch Private Data if Admin
         if (isAdmin) {
@@ -76,7 +77,7 @@ export default function MemberDetailModal() {
         setLoading(false)
       }
     },
-    [isAdmin, supabase, t]
+    [isAdmin, supabase, t, user]
   )
 
   // Sync state with URL parameter or create mode

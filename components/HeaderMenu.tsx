@@ -37,6 +37,18 @@ export default function HeaderMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Guests browsing a public page: nothing to manage, just offer a way in.
+  if (!user) {
+    return (
+      <Link
+        href='/login'
+        className='flex items-center gap-2 rounded-full border border-stone-200 py-1.5 pr-4 pl-3 text-sm font-medium text-stone-700 transition-all duration-200 hover:bg-stone-100'>
+        <UserCircle className='size-5' />
+        {t('login')}
+      </Link>
+    )
+  }
+
   const links = [
     {
       href: '/dashboard',

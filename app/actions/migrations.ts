@@ -23,7 +23,8 @@ const MIGRATION_FILES = [
   'docs/migrations/20260904000000_add_data_api_table_grants.sql',
   'docs/migrations/20260914110000_add_admin_reset_password.sql',
   'docs/migrations/20260914113000_add_change_own_password.sql',
-  'docs/migrations/20260916100000_add_dharma_name_and_age_at_death.sql'
+  'docs/migrations/20260916100000_add_dharma_name_and_age_at_death.sql',
+  'docs/migrations/20260918000000_public_member_read_access.sql'
 ] as const
 
 const MIGRATION_TABLE = 'public.app_migrations'

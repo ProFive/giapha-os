@@ -1,3 +1,4 @@
+import { isPublicDashboardPath } from '@/lib/publicRoutes'
 import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -15,8 +16,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Let the dashboard layout know which route is rendering so it can tell a
+  // public page from a protected one (layouts cannot read the pathname).
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
   let supabaseResponse = NextResponse.next({
-    request
+    request: { headers: requestHeaders }
   })
 
   const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
@@ -29,7 +35,7 @@ export async function updateSession(request: NextRequest) {
           request.cookies.set(name, value)
         )
         supabaseResponse = NextResponse.next({
-          request
+          request: { headers: requestHeaders }
         })
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
@@ -53,6 +59,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   )
 
+  // Read-only pages guests may open without an account
+  const isPublicPath = isPublicDashboardPath(request.nextUrl.pathname)
+
   const isLoginPage = request.nextUrl.pathname.startsWith('/login')
 
   // Check if DB schema is initialized by checking if profiles table exists
@@ -72,7 +81,7 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (isProtectedPath && !user) {
+  if (isProtectedPath && !user && !isPublicPath) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
