@@ -1,10 +1,12 @@
 'use client'
 
 import { deletePost } from '@/app/actions/news'
+import NewsComments from '@/components/NewsComments'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { NewsPost } from '@/types'
 import { Pencil, Trash } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
 
 interface NewsPostCardProps {
   post: NewsPost
@@ -20,6 +22,8 @@ export default function NewsPostCard({
   onDeleted
 }: NewsPostCardProps) {
   const { t } = useI18n()
+  const [showComments, setShowComments] = useState(false)
+  const [commentCount, setCommentCount] = useState(post.comment_count ?? 0)
   const authorName = post.author?.full_name ?? t('newsAnonymousAuthor')
   const createdAt = new Date(post.created_at).toLocaleDateString('vi-VN')
 
@@ -85,8 +89,16 @@ export default function NewsPostCard({
         </div>
       )}
 
-      <footer className='mt-4 text-xs text-stone-500'>
-        {t('newsCommentCount', { count: post.comment_count ?? 0 })}
+      <footer className='mt-4'>
+        <button
+          type='button'
+          onClick={() => setShowComments((prev) => !prev)}
+          className='text-xs font-medium text-stone-500 transition-colors hover:text-amber-700'>
+          {t('newsCommentCount', { count: commentCount })}
+        </button>
+        {showComments && (
+          <NewsComments postId={post.id} onCountChange={setCommentCount} />
+        )}
       </footer>
     </article>
   )

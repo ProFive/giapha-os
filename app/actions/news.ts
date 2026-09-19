@@ -120,3 +120,24 @@ export async function deletePost(id: string) {
 
   revalidatePath('/dashboard/news')
 }
+
+export async function deleteComment(id: string) {
+  const { t } = await getServerTranslations()
+
+  if (!UUID_PATTERN.test(id)) return { error: t('newsCommentError') }
+
+  const profile = await getProfile()
+  if (!profile?.is_active) return { error: t('newsCommentError') }
+
+  const supabase = await getSupabase()
+
+  // RLS quyết định ai được xoá: tác giả hoặc admin.
+  const { error } = await supabase.from('news_comments').delete().eq('id', id)
+
+  if (error) {
+    console.error('Error deleting news comment:', error)
+    return { error: t('newsCommentError') }
+  }
+
+  revalidatePath('/dashboard/news')
+}
