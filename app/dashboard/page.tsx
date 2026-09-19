@@ -13,6 +13,7 @@ import {
   GitMerge,
   HeartHandshake,
   Network,
+  Newspaper,
   Star,
   Users,
   Image as ImageIcon,
@@ -64,6 +65,15 @@ export default async function DashboardLaunchpad() {
 
   /* ── Feature lists ────────────────────────────────────────────── */
   const publicFeatures = [
+    {
+      title: t('newsTitle'),
+      description: t('newsDescription'),
+      icon: <Newspaper className='size-8 text-cyan-600' />,
+      href: '/dashboard/news',
+      bgColor: 'bg-cyan-50',
+      borderColor: 'border-cyan-200/60',
+      hoverColor: 'hover:border-cyan-400 '
+    },
     {
       title: t('familyTree'),
       description: t('familyTreeDescription'),
