@@ -24,9 +24,11 @@ const staggerContainer: Variants = {
 
 interface LandingHeroProps {
   siteName: string
+  address: string
+  subAddress: string
 }
 
-export default function LandingHero({ siteName }: LandingHeroProps) {
+export default function LandingHero({ siteName, address, subAddress }: LandingHeroProps) {
   const { t } = useI18n()
   const features = [
     {
@@ -66,7 +68,12 @@ export default function LandingHero({ siteName }: LandingHeroProps) {
         <h1 className='max-w-4xl font-serif text-5xl leading-[1.1] font-semibold text-stone-900 sm:text-6xl md:text-7xl lg:text-[5rem]'>
           <span className='block'>{siteName}</span>
         </h1>
-
+         <h1 className='max-w-4xl font-serif text-5xl leading-[1.1] font-semibold text-stone-500 sm:text-6xl md:text-7xl lg:text-[1.2rem]'>
+          <span className='block'>{address}</span>
+        </h1>
+         <h1 className='max-w-4xl font-serif text-5xl leading-[1.1] font-semibold text-stone-500 sm:text-6xl md:text-7xl lg:text-[1.0rem]'>
+          <span className='block'>{subAddress}</span>
+        </h1>
         <p className='mx-auto max-w-2xl text-sm leading-relaxed font-light text-stone-600'>
           {t('landingDescription')}
         </p>

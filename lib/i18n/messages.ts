@@ -386,6 +386,8 @@ export const messages = {
     newsLinkedPerson: 'Thành viên trong gia phả',
     newsLinkedPersonNone: 'Chưa gán',
     newsLinkedPersonError: 'Không gán được thành viên cho tài khoản này.',
+    genealogyTitle: 'Phả ký',
+    genealogyDescription: 'Viết lại lịch sử dòng họ',
     featureMembers: 'Quản lý thành viên',
     featureMembersDescription:
       'Cập nhật thông tin chi tiết, tiểu sử và hình ảnh của từng thành viên trong dòng họ một cách nhanh chóng và bảo mật.',
@@ -1256,6 +1258,8 @@ export const messages = {
     newsLinkedPerson: 'Linked family member',
     newsLinkedPersonNone: 'Not linked',
     newsLinkedPersonError: 'Could not link this account to a family member.',
+    genealogyTitle: 'Family genealogy',
+    genealogyDescription: 'Rewrite the history of the family',
     featureMembers: 'Manage members',
     featureMembersDescription:
       'Quickly and securely update detailed information, biographies, and photos for every family member.',

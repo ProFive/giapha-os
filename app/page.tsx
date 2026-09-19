@@ -20,7 +20,7 @@ export default function HomePage() {
       </div>
 
       <main className='relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 py-20 md:py-32'>
-        <LandingHero siteName={config.siteName} />
+        <LandingHero siteName={config.siteName} address={config.address} subAddress={config.subAddress} />
       </main>
 
       <Footer className='relative z-10 border-none bg-transparent' />
