@@ -41,7 +41,7 @@ Designed primarily for Vietnamese families.
 ## Demo
 
 - Demo: [giapha-os.homielab.com](https://giapha-os.homielab.com)
-- Account: `giaphaos@homielab.com`
+- Account: `fivetech.vietnam@gmail.com`
 - Password: `giaphaos`
 
 ## Screenshots

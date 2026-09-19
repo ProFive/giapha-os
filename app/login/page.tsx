@@ -19,7 +19,7 @@ export default function LoginPage() {
   const isDemo =
     typeof window !== 'undefined' &&
     window.location.hostname === config.demoDomain
-  const [email, setEmail] = useState(isDemo ? 'giaphaos@homielab.com' : '')
+  const [email, setEmail] = useState(isDemo ? 'fivetech.vietnam@gmail.com' : '')
   const [password, setPassword] = useState(isDemo ? 'giaphaos' : '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

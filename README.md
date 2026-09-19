@@ -41,7 +41,7 @@ Phù hợp với người Việt Nam.
 ## Demo
 
 - Demo: [giapha-os.homielab.com](https://giapha-os.homielab.com)
-- Tài khoản: `giaphaos@homielab.com`
+- Tài khoản: `fivetech.vietnam@gmail.com`
 - Mật khẩu: `giaphaos`
 
 ## Hình ảnh Giao diện
