@@ -1,7 +1,9 @@
 'use client'
 
+import { deletePost } from '@/app/actions/news'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { NewsPost } from '@/types'
+import { Pencil, Trash } from 'lucide-react'
 import Image from 'next/image'
 
 interface NewsPostCardProps {
@@ -11,20 +13,53 @@ interface NewsPostCardProps {
   onDeleted: (id: string) => void
 }
 
-export default function NewsPostCard({ post }: NewsPostCardProps) {
+export default function NewsPostCard({
+  post,
+  canPost,
+  onEdit,
+  onDeleted
+}: NewsPostCardProps) {
   const { t } = useI18n()
   const authorName = post.author?.full_name ?? t('newsAnonymousAuthor')
   const createdAt = new Date(post.created_at).toLocaleDateString('vi-VN')
 
+  const handleDelete = async () => {
+    if (!window.confirm(t('newsDeleteConfirm'))) return
+    const result = await deletePost(post.id)
+    if (result?.error) return
+    onDeleted(post.id)
+  }
+
   return (
     <article className='rounded-2xl border border-stone-200/60 bg-white/80 p-5 sm:p-6'>
-      <header className='mb-3'>
-        <h2 className='font-serif text-xl font-semibold text-stone-800'>
-          {post.title}
-        </h2>
-        <p className='mt-1 text-xs text-stone-500'>
-          {authorName} · {createdAt}
-        </p>
+      <header className='mb-3 flex items-start justify-between gap-3'>
+        <div>
+          <h2 className='font-serif text-xl font-semibold text-stone-800'>
+            {post.title}
+          </h2>
+          <p className='mt-1 text-xs text-stone-500'>
+            {authorName} · {createdAt}
+          </p>
+        </div>
+
+        {canPost && (
+          <div className='flex shrink-0 items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => onEdit(post)}
+              aria-label={t('newsEdit')}
+              className='rounded-full p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-800'>
+              <Pencil className='size-4' />
+            </button>
+            <button
+              type='button'
+              onClick={handleDelete}
+              aria-label={t('newsDelete')}
+              className='rounded-full p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-600'>
+              <Trash className='size-4' />
+            </button>
+          </div>
+        )}
       </header>
 
       <p className='text-sm leading-relaxed whitespace-pre-wrap text-stone-700'>
