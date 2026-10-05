@@ -1,5 +1,6 @@
 'use client'
 
+import { createClient } from '@/utils/supabase/client'
 import { LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -7,17 +8,18 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 
 export default function LogoutButton() {
   const router = useRouter()
+  const supabase = createClient()
   const { t } = useI18n()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await supabase.auth.signOut()
       router.push('/login')
-      router.refresh()
+      router.refresh() // Refresh to clear any cached Server Component data
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('Lỗi đăng xuất:', error)
       setIsLoggingOut(false)
     }
   }

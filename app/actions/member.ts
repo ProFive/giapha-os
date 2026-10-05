@@ -1,8 +1,7 @@
 'use server'
 
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile } from '@/utils/db/queries'
-import { getDB } from '@/utils/db/client'
+import { getProfile, getSupabase } from '@/utils/supabase/queries'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -16,7 +15,7 @@ export async function deleteMemberProfile(memberId: string) {
   }
 
   const profile = await getProfile()
-  const db = getDB()
+  const supabase = await getSupabase()
 
   if (
     !profile?.is_active ||
@@ -28,22 +27,31 @@ export async function deleteMemberProfile(memberId: string) {
   }
 
   // 2. Check for existing relationships
-  const rel = await db
-    .prepare(
-      'SELECT id FROM relationships WHERE person_a = ? OR person_b = ? LIMIT 1'
-    )
-    .bind(memberId, memberId)
-    .first()
+  const { data: relationships, error: relationshipError } = await supabase
+    .from('relationships')
+    .select('id')
+    .or(`person_a.eq.${memberId},person_b.eq.${memberId}`)
+    .limit(1)
 
-  if (rel) {
-    return { error: t('memberHasRelationships') }
+  if (relationshipError) {
+    console.error('Error checking relationships:', relationshipError)
+    return { error: t('relationshipCheckError') }
+  }
+
+  if (relationships && relationships.length > 0) {
+    return {
+      error: t('memberHasRelationships')
+    }
   }
 
   // 3. Delete the member
-  try {
-    await db.prepare('DELETE FROM persons WHERE id = ?').bind(memberId).run()
-  } catch (error) {
-    console.error('Error deleting person:', error)
+  const { error: deleteError } = await supabase
+    .from('persons')
+    .delete()
+    .eq('id', memberId)
+
+  if (deleteError) {
+    console.error('Error deleting person:', deleteError)
     return { error: t('memberDeleteError') }
   }
 
@@ -72,7 +80,7 @@ export async function updateDescendantGenerationsAction(
   }
 
   const profile = await getProfile()
-  const db = getDB()
+  const supabase = await getSupabase()
 
   if (
     !profile?.is_active ||
@@ -84,15 +92,17 @@ export async function updateDescendantGenerationsAction(
   }
 
   // 1. Fetch all parent-child relationships
-  const relsRes = await db
-    .prepare(
-      "SELECT person_a, person_b, type FROM relationships WHERE type IN ('biological_child', 'adopted_child')"
-    )
-    .all<{ person_a: string; person_b: string; type: string }>()
+  const { data: relationships, error: relError } = await supabase
+    .from('relationships')
+    .select('person_a, person_b, type')
+    .in('type', ['biological_child', 'adopted_child'])
 
-  const relationships = relsRes.results ?? []
+  if (relError) {
+    console.error('Error fetching relationships:', relError)
+    return { error: t('relationshipsFetchError') }
+  }
 
-  // Build children map
+  // Build children map (person_a is parent, person_b is child)
   const childrenMap = new Map<string, string[]>()
   relationships.forEach((r) => {
     if (!childrenMap.has(r.person_a)) childrenMap.set(r.person_a, [])
@@ -116,30 +126,37 @@ export async function updateDescendantGenerationsAction(
   if (descendants.size === 0) return { success: true }
   const descendantIds = Array.from(descendants)
 
-  // 3. Fetch current generations
-  const placeholders = descendantIds.map(() => '?').join(',')
-  const personsRes = await db
-    .prepare(`SELECT id, generation FROM persons WHERE id IN (${placeholders})`)
-    .bind(...descendantIds)
-    .all<{ id: string; generation: number | null }>()
+  // 3. Fetch current generations of descendants
+  const { data: persons, error: personsError } = await supabase
+    .from('persons')
+    .select('id, generation')
+    .in('id', descendantIds)
 
-  const persons = personsRes.results ?? []
+  if (personsError) {
+    console.error('Error fetching persons:', personsError)
+    return { error: t('generationsFetchError') }
+  }
 
-  // 4. Update generations in batch
-  const updates = persons.filter((p) => p.generation != null)
-  if (updates.length > 0) {
-    try {
-      await db.batch(
-        updates.map((p) =>
-          db
-            .prepare('UPDATE persons SET generation = ? WHERE id = ?')
-            .bind(Math.max(1, p.generation! + generationDelta), p.id)
-        )
-      )
-    } catch (error) {
-      console.error('Error updating generations:', error)
-      return { error: t('descendantGenerationUpdateError') }
+  // 4. Update each descendant's generation
+  let hasError = false
+  // Batch processing can be done by looping
+  for (const person of persons) {
+    if (person.generation !== null && person.generation !== undefined) {
+      const newGen = Math.max(1, person.generation + generationDelta)
+      const { error: updateError } = await supabase
+        .from('persons')
+        .update({ generation: newGen })
+        .eq('id', person.id)
+
+      if (updateError) {
+        console.error(`Error updating person ${person.id}:`, updateError)
+        hasError = true
+      }
     }
+  }
+
+  if (hasError) {
+    return { error: t('descendantGenerationUpdateError') }
   }
 
   return { success: true }

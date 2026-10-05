@@ -1,8 +1,7 @@
 import { getServerTranslations } from '@/lib/i18n/server'
 import { getTodayLunar } from '@/utils/dateHelpers'
 import { computeEvents } from '@/utils/eventHelpers'
-import { getIsAdmin } from '@/utils/db/queries'
-import { getDB } from '@/utils/db/client'
+import { getIsAdmin, getSupabase } from '@/utils/supabase/queries'
 import {
   ArrowRight,
   ArrowUpCircle,
@@ -44,20 +43,18 @@ const eventTypeConfig = {
 export default async function DashboardLaunchpad() {
   const { t } = await getServerTranslations()
   const isAdmin = await getIsAdmin()
-  const db = getDB()
+  const supabase = await getSupabase()
 
   /* ── Fetch events data ────────────────────────────────────────── */
-  const [personsRes, customEventsRes] = await Promise.all([
-    db.prepare(
-      'SELECT id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased FROM persons'
-    ).all(),
-    db.prepare('SELECT id, name, content, event_date, location, created_by FROM custom_events').all()
-  ])
+  const { data: persons } = await supabase
+    .from('persons')
+    .select(
+      'id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased'
+    )
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const persons: any[] = personsRes.results ?? []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const customEvents: any[] = customEventsRes.results ?? []
+  const { data: customEvents } = await supabase
+    .from('custom_events')
+    .select('id, name, content, event_date, location, created_by')
 
   const allEvents = computeEvents(persons ?? [], customEvents ?? [])
   const upcomingEvents = allEvents.filter(

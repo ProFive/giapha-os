@@ -1,6 +1,7 @@
 'use client'
 
 import { Gender, Person } from '@/types'
+import { createClient } from '@/utils/supabase/client'
 import { AnimatePresence, motion, Variants } from 'framer-motion'
 import {
   AlertCircle,
@@ -39,6 +40,7 @@ export default function MemberForm({
   onCancel
 }: MemberFormProps) {
   const router = useRouter()
+  const supabase = createClient()
   const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -348,22 +350,20 @@ export default function MemberForm({
 
       // For a new member, we must insert first to get the ID for the avatar filename
       if (!isEditing || !currentPersonId) {
-        const createRes = await fetch('/api/persons', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(getPersonData(currentAvatarUrl || null))
-        })
-        const createJson = await createRes.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (!createRes.ok || !createJson.data) throw new Error(createJson.error || 'Create failed')
-        currentPersonId = createJson.data.id
+        const { data: newPerson, error: createError } = await supabase
+          .from('persons')
+          .insert(getPersonData(currentAvatarUrl || null))
+          .select()
+          .single()
+        if (createError) throw createError
+        currentPersonId = newPerson.id
       } else {
         // Update existing member info first
-        const updateRes = await fetch('/api/persons', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: currentPersonId, ...getPersonData(currentAvatarUrl || null) })
-        })
-        if (!updateRes.ok) throw new Error('Update failed')
+        const { error: updateError } = await supabase
+          .from('persons')
+          .update(getPersonData(currentAvatarUrl || null))
+          .eq('id', currentPersonId)
+        if (updateError) throw updateError
       }
 
       // 2. Handle Avatar Upload if a new file is selected (now we have currentPersonId)
@@ -373,21 +373,20 @@ export default function MemberForm({
         const fileName = `${currentPersonId}_${slugName}.${fileExt}`
         const filePath = `${fileName}`
 
-        const avatarFormData = new FormData()
-        avatarFormData.append('file', avatarFile)
-        const avatarUploadRes = await fetch('/api/upload/avatars', { method: 'POST', body: avatarFormData })
-        const avatarUploadJson = await avatarUploadRes.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (!avatarUploadRes.ok || !avatarUploadJson.path) throw new Error(avatarUploadJson.error || 'Avatar upload failed')
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile, { upsert: true })
 
-        currentAvatarUrl = avatarUploadJson.path
+        if (uploadError) throw uploadError
+
+        currentAvatarUrl = filePath
 
         // Update the person with the final avatar URL
-        const updateAvatarRes = await fetch('/api/persons', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: currentPersonId, avatar_url: currentAvatarUrl })
-        })
-        if (!updateAvatarRes.ok) throw new Error('Avatar update failed')
+        const { error: updateAvatarError } = await supabase
+          .from('persons')
+          .update({ avatar_url: currentAvatarUrl })
+          .eq('id', currentPersonId)
+        if (updateAvatarError) throw updateAvatarError
       }
 
       // 3. Upsert private data (only if admin and currentPersonId exists)
@@ -405,13 +404,18 @@ export default function MemberForm({
           normalizedData.current_residence
 
         if (hasData) {
-          await fetch('/api/persons/' + currentPersonId + '/private', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(normalizedData)
-          })
+          const { error } = await supabase
+            .from('person_details_private')
+            .upsert(normalizedData)
+
+          if (error) throw error
         } else {
-          await fetch('/api/persons/' + currentPersonId + '/private', { method: 'DELETE' })
+          const { error } = await supabase
+            .from('person_details_private')
+            .delete()
+            .eq('person_id', currentPersonId)
+
+          if (error) throw error
         }
       }
 
@@ -732,9 +736,16 @@ export default function MemberForm({
                               initialData.avatar_url
                             )
                             if (filePath) {
-                              await fetch('/api/storage/avatars/' + encodeURIComponent(filePath), {
-                                method: 'DELETE'
-                              }).catch(e => console.error('Error removing avatar from storage:', e))
+                              const { error: removeError } =
+                                await supabase.storage
+                                  .from('avatars')
+                                  .remove([filePath])
+                              if (removeError) {
+                                console.error(
+                                  'Error removing avatar from storage:',
+                                  removeError
+                                )
+                              }
                             }
                           } catch (err) {
                             console.error(

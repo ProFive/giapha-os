@@ -1,7 +1,6 @@
 import FamilyStats from '@/components/FamilyStats'
-import { getDB } from '@/utils/db/client'
 import { getServerTranslations } from '@/lib/i18n/server'
-
+import { getSupabase } from '@/utils/supabase/queries'
 
 export async function generateMetadata() {
   const { t } = await getServerTranslations()
@@ -11,15 +10,12 @@ export async function generateMetadata() {
 
 export default async function StatsPage() {
   const { t } = await getServerTranslations()
-  const db = getDB()
-  const [personsRes, relsRes] = await Promise.all([
-    db.prepare('SELECT * FROM persons').all(),
-    db.prepare('SELECT * FROM relationships').all()
-  ])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const persons: any[] = personsRes.results ?? []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const relationships: any[] = relsRes.results ?? []
+  const supabase = await getSupabase()
+
+  const { data: persons } = await supabase.from('persons').select('*')
+  const { data: relationships } = await supabase
+    .from('relationships')
+    .select('*')
 
   return (
     <div className='relative flex w-full flex-1 flex-col pb-12'>

@@ -1,6 +1,9 @@
 'use client'
 
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { createClient } from '@/utils/supabase/client'
+import { uploadGalleryImage } from '@/utils/supabase/storage'
+import { getGalleryStoragePath } from '@/utils/supabase/storage-path'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2, UploadCloud, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -87,19 +90,24 @@ export default function UploadModal({
     setError(null)
 
     try {
-      let finalPath = initialData ? initialData.storage_path || initialData.image_url : ''
+      let finalPath = initialData
+        ? initialData.storage_path ||
+          getGalleryStoragePath(initialData.image_url)
+        : ''
 
       // 1. Upload to storage (only if new file selected)
       if (file) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const uploadRes = await fetch('/api/upload/gallery', { method: 'POST', body: formData })
-        const uploadJson = await uploadRes.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (!uploadRes.ok || !uploadJson.path) throw new Error(t('uploadError'))
-        finalPath = uploadJson.path
+        const { path, error: uploadError } = await uploadGalleryImage(file)
+        if (uploadError || !path) {
+          throw new Error(t('uploadError'))
+        }
+        finalPath = path
       }
 
       // 2. Save to database
+      const supabase = createClient()
+      const { data: userData } = await supabase.auth.getUser()
+
       const itemData = {
         title,
         description: description || null,
@@ -108,19 +116,21 @@ export default function UploadModal({
       }
 
       if (initialData) {
-        const res = await fetch(`/api/gallery/${initialData.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(itemData)
-        })
-        if (!res.ok) throw new Error(t('systemError'))
+        // Update
+        const { error: dbError } = await supabase
+          .from('gallery_items')
+          .update(itemData)
+          .eq('id', initialData.id)
+        if (dbError) throw dbError
       } else {
-        const res = await fetch('/api/gallery', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(itemData)
-        })
-        if (!res.ok) throw new Error(t('systemError'))
+        // Insert
+        const { error: dbError } = await supabase.from('gallery_items').insert([
+          {
+            ...itemData,
+            created_by: userData?.user?.id || null
+          }
+        ])
+        if (dbError) throw dbError
       }
 
       // Success

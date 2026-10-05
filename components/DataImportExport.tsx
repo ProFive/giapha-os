@@ -27,10 +27,26 @@ export default function DataImportExport() {
   useEffect(() => {
     async function fetchPersons() {
       try {
-        const res = await fetch('/api/persons/search?recent=0&limit=10000')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const json = await res.json() as any
-        setPersons(json.data || [])
+        const { createClient } = await import('@/utils/supabase/client')
+        const supabase = createClient()
+
+        let allFetched: Person[] = []
+        let from = 0
+        const step = 1000
+
+        while (true) {
+          const { data } = await supabase
+            .from('persons')
+            .select('id, full_name, birth_year, gender, avatar_url, generation')
+            .order('birth_year', { ascending: true, nullsFirst: false })
+            .range(from, from + step - 1)
+
+          if (!data || data.length === 0) break
+          allFetched = allFetched.concat(data as Person[])
+          if (data.length < step) break
+          from += step
+        }
+        setPersons(allFetched)
       } catch (err) {
         console.error('Error fetching persons:', err)
       }

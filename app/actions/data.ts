@@ -3,9 +3,7 @@
 import { getServerTranslations } from '@/lib/i18n/server'
 import type { TranslationKey, TranslationValues } from '@/lib/i18n/messages'
 import { Relationship } from '@/types'
-import { getIsAdmin } from '@/utils/db/queries'
-import { getDB } from '@/utils/db/client'
-import { generateId } from '@/utils/db/auth'
+import { getIsAdmin, getSupabase } from '@/utils/supabase/queries'
 import { revalidatePath } from 'next/cache'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -266,7 +264,31 @@ export async function exportData(
     return { error: t('dataAccessDenied') }
   }
 
-  const db = getDB()
+  const supabase = await getSupabase()
+
+  // Fetch ALL rows using pagination to avoid the 1000-row Supabase limit.
+  const fetchAll = async <T>(
+    table: string,
+    selectCols: string,
+    orderBy: string
+  ): Promise<T[]> => {
+    let allData: T[] = []
+    let from = 0
+    const step = 1000
+    while (true) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(selectCols)
+        .order(orderBy, { ascending: true })
+        .range(from, from + step - 1)
+      if (error) throw error
+      if (!data || data.length === 0) break
+      allData = allData.concat(data as T[])
+      if (data.length < step) break
+      from += step
+    }
+    return allData
+  }
 
   let allPersons: PersonExport[] = []
   let allRels: RelationshipExport[] = []
@@ -274,21 +296,27 @@ export async function exportData(
   let allCustomEvents: CustomEventExport[] = []
 
   try {
-    const [personsRes, relsRes, privateRes, eventsRes] = await Promise.all([
-      db.prepare('SELECT id, full_name, gender, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, is_in_law, birth_order, generation, other_names, dharma_name, avatar_url, note, created_at, updated_at FROM persons ORDER BY created_at ASC').all<PersonExport>(),
-      db.prepare('SELECT id, type, person_a, person_b, note, created_at, updated_at FROM relationships ORDER BY created_at ASC').all<RelationshipExport>(),
-      db.prepare('SELECT person_id, phone_number, occupation, current_residence FROM person_details_private ORDER BY person_id ASC').all<PersonDetailsPrivateExport>(),
-      db.prepare('SELECT id, name, content, event_date, location, created_by FROM custom_events ORDER BY event_date ASC').all<CustomEventExport>()
-    ])
-    // SQLite stores booleans as 0/1; coerce back to boolean for the export payload
-    allPersons = (personsRes.results ?? []).map((p) => ({
-      ...p,
-      is_deceased: Boolean(p.is_deceased),
-      is_in_law: Boolean(p.is_in_law)
-    }))
-    allRels = relsRes.results ?? []
-    allPrivateDetails = privateRes.results ?? []
-    allCustomEvents = eventsRes.results ?? []
+    allPersons = await fetchAll<PersonExport>(
+      'persons',
+      'id, full_name, gender, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, is_in_law, birth_order, generation, other_names, avatar_url, note, created_at, updated_at',
+      'created_at'
+    )
+    allRels = await fetchAll<RelationshipExport>(
+      'relationships',
+      'id, type, person_a, person_b, note, created_at, updated_at',
+      'created_at'
+    )
+    // person_details_private might not have created_at, order by person_id
+    allPrivateDetails = await fetchAll<PersonDetailsPrivateExport>(
+      'person_details_private',
+      'person_id, phone_number, occupation, current_residence',
+      'person_id'
+    )
+    allCustomEvents = await fetchAll<CustomEventExport>(
+      'custom_events',
+      'id, name, content, event_date, location, created_by',
+      'event_date'
+    )
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     return { error: t('loadDataError', { error: message }) }
@@ -380,131 +408,129 @@ export async function importData(
     return { error: t('dataAccessDenied') }
   }
 
-  const db = getDB()
+  const supabase = await getSupabase()
 
   const validationError = validateImportPayload(importPayload, t)
   if (validationError) return { error: validationError }
 
-  try {
-    // Clear all existing data respecting FK constraints
-    await db.batch([
-      db.prepare('DELETE FROM news_comments'),
-      db.prepare('DELETE FROM news_posts'),
-      db.prepare('DELETE FROM custom_events'),
-      db.prepare('DELETE FROM relationships'),
-      db.prepare('DELETE FROM person_details_private'),
-      db.prepare('DELETE FROM persons')
-    ])
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    return { error: t('deletePersonsError', { error: msg }) }
-  }
+  // 1. Xoá custom_events
+  const { error: delEventsError } = await supabase
+    .from('custom_events')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000')
 
-  const now = new Date().toISOString()
-
-  // Insert persons
-  const persons = importPayload.persons.map(sanitizePerson)
-  const CHUNK = 50 // D1 batch limit is lower than Supabase's
-  try {
-    for (let i = 0; i < persons.length; i += CHUNK) {
-      const chunk = persons.slice(i, i + CHUNK)
-      await db.batch(
-        chunk.map((p) =>
-          db
-            .prepare(
-              `INSERT OR REPLACE INTO persons
-               (id, full_name, gender, birth_year, birth_month, birth_day,
-                death_year, death_month, death_day, death_lunar_year,
-                death_lunar_month, death_lunar_day, is_deceased, is_in_law,
-                birth_order, generation, other_names, dharma_name, age_at_death,
-                avatar_url, note, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-            )
-            .bind(
-              p.id, p.full_name, p.gender,
-              p.birth_year, p.birth_month, p.birth_day,
-              p.death_year, p.death_month, p.death_day,
-              p.death_lunar_year, p.death_lunar_month, p.death_lunar_day,
-              p.is_deceased ? 1 : 0, p.is_in_law ? 1 : 0,
-              p.birth_order, p.generation,
-              p.other_names, p.dharma_name, p.age_at_death,
-              p.avatar_url, p.note, now, now
-            )
-        )
-      )
+  if (delEventsError)
+    return {
+      error: t('deleteEventsError', { error: delEventsError.message })
     }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    return { error: t('importPersonsError', { chunk: 1, error: msg }) }
+
+  // 2. Xoá relationships (FK constraint)
+  const { error: delRelError } = await supabase
+    .from('relationships')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+
+  if (delRelError)
+    return {
+      error: t('deleteRelationshipsError', { error: delRelError.message })
+    }
+
+  // 3. Xoá person_details_private (FK constraint on persons)
+  const { error: delPrivateError } = await supabase
+    .from('person_details_private')
+    .delete()
+    .neq('person_id', '00000000-0000-0000-0000-000000000000')
+
+  if (delPrivateError)
+    return {
+      error: t('deletePrivateDetailsError', {
+        error: delPrivateError.message
+      })
+    }
+
+  // 4. Xoá persons
+  const { error: delPersonsError } = await supabase
+    .from('persons')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+
+  if (delPersonsError)
+    return {
+      error: t('deletePersonsError', { error: delPersonsError.message })
+    }
+
+  // 5. Insert persons (sanitized — chỉ giữ các field schema hiện tại)
+  const CHUNK = 200
+  const persons = importPayload.persons.map(sanitizePerson)
+
+  for (let i = 0; i < persons.length; i += CHUNK) {
+    const chunk = persons.slice(i, i + CHUNK)
+    const { error } = await supabase.from('persons').insert(chunk)
+    if (error)
+      return {
+        error: t('importPersonsError', {
+          chunk: i / CHUNK + 1,
+          error: error.message
+        })
+      }
   }
 
-  // Insert relationships
+  // 6. Insert relationships (stripped of id/created_at to avoid conflicts)
+  // Filter out self-relationships to avoid "no_self_relationship" constraint violation
   const relationships = importPayload.relationships
     .filter((r) => r.person_a !== r.person_b)
     .map(sanitizeRelationship)
 
-  try {
-    for (let i = 0; i < relationships.length; i += CHUNK) {
-      const chunk = relationships.slice(i, i + CHUNK)
-      await db.batch(
-        chunk.map((r) =>
-          db
-            .prepare(
-              `INSERT OR IGNORE INTO relationships
-               (id, type, person_a, person_b, note, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?)`
-            )
-            .bind(generateId(), r.type, r.person_a, r.person_b, r.note, now, now)
-        )
-      )
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    return { error: t('importRelationshipsError', { chunk: 1, error: msg }) }
+  for (let i = 0; i < relationships.length; i += CHUNK) {
+    const chunk = relationships.slice(i, i + CHUNK)
+    const { error } = await supabase.from('relationships').insert(chunk)
+    if (error)
+      return {
+        error: t('importRelationshipsError', {
+          chunk: i / CHUNK + 1,
+          error: error.message
+        })
+      }
   }
 
-  // Insert private details
+  // 7. Insert person_details_private (if present in payload)
+  let privateDetailsCount = 0
   const privateDetails = importPayload.person_details_private ?? []
   if (privateDetails.length > 0) {
-    try {
-      for (let i = 0; i < privateDetails.length; i += CHUNK) {
-        const chunk = privateDetails.slice(i, i + CHUNK)
-        await db.batch(
-          chunk.map((d) =>
-            db
-              .prepare(
-                'INSERT OR REPLACE INTO person_details_private (person_id, phone_number, occupation, current_residence) VALUES (?,?,?,?)'
-              )
-              .bind(d.person_id, d.phone_number, d.occupation, d.current_residence)
-          )
-        )
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return { error: t('importPrivateDetailsError', { chunk: 1, error: msg }) }
+    for (let i = 0; i < privateDetails.length; i += CHUNK) {
+      const chunk = privateDetails.slice(i, i + CHUNK)
+      const { error } = await supabase
+        .from('person_details_private')
+        .insert(chunk)
+      if (error)
+        return {
+          error: t('importPrivateDetailsError', {
+            chunk: i / CHUNK + 1,
+            error: error.message
+          })
+        }
     }
+    privateDetailsCount = privateDetails.length
   }
 
-  // Insert custom events
-  const customEvents = (importPayload.custom_events ?? []).map(sanitizeCustomEvent)
+  // 8. Insert custom_events (if present in payload, strip created_by)
+  let customEventsCount = 0
+  const customEvents = (importPayload.custom_events ?? []).map(
+    sanitizeCustomEvent
+  )
   if (customEvents.length > 0) {
-    try {
-      for (let i = 0; i < customEvents.length; i += CHUNK) {
-        const chunk = customEvents.slice(i, i + CHUNK)
-        await db.batch(
-          chunk.map((e) =>
-            db
-              .prepare(
-                'INSERT OR REPLACE INTO custom_events (id, name, content, event_date, location) VALUES (?,?,?,?,?)'
-              )
-              .bind(e.id, e.name, e.content, e.event_date, e.location)
-          )
-        )
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return { error: t('importEventsError', { chunk: 1, error: msg }) }
+    for (let i = 0; i < customEvents.length; i += CHUNK) {
+      const chunk = customEvents.slice(i, i + CHUNK)
+      const { error } = await supabase.from('custom_events').insert(chunk)
+      if (error)
+        return {
+          error: t('importEventsError', {
+            chunk: i / CHUNK + 1,
+            error: error.message
+          })
+        }
     }
+    customEventsCount = customEvents.length
   }
 
   revalidatePath('/dashboard')
@@ -516,8 +542,8 @@ export async function importData(
     imported: {
       persons: persons.length,
       relationships: relationships.length,
-      person_details_private: privateDetails.length,
-      custom_events: customEvents.length
+      person_details_private: privateDetailsCount,
+      custom_events: customEventsCount
     }
   }
 }

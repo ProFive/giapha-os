@@ -1,38 +1,44 @@
 import Footer from '@/components/Footer'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { ArrowLeft, Database, Terminal } from 'lucide-react'
+import { promises as fs } from 'fs'
+import { ArrowLeft, Database, Play } from 'lucide-react'
 import Link from 'next/link'
+import path from 'path'
+import CopyButton from './CopyButton'
 
 export default async function SetupPage() {
   const { t } = await getServerTranslations()
+  let sqlBundle = ''
+  try {
+    const schemaPath = path.join(process.cwd(), 'docs', 'schema.sql')
+    const migrationsPath = path.join(process.cwd(), 'docs', 'migrations')
+    const migrationFiles = (await fs.readdir(migrationsPath))
+      .filter((fileName) => fileName.endsWith('.sql'))
+      .sort()
+    const schemaContent = await fs.readFile(schemaPath, 'utf-8')
+    const migrationContents = await Promise.all(
+      migrationFiles.map((fileName) =>
+        fs.readFile(path.join(migrationsPath, fileName), 'utf-8')
+      )
+    )
 
-  const steps = [
-    {
-      step: '1',
-      title: 'Install Wrangler CLI',
-      command: 'npm install -g wrangler'
-    },
-    {
-      step: '2',
-      title: 'Authenticate with Cloudflare',
-      command: 'wrangler login'
-    },
-    {
-      step: '3',
-      title: 'Create D1 database',
-      command: 'wrangler d1 create giapha-os'
-    },
-    {
-      step: '4',
-      title: 'Apply migrations',
-      command: 'wrangler d1 migrations apply giapha-os'
-    },
-    {
-      step: '5',
-      title: 'Import seed data',
-      command: 'wrangler d1 execute giapha-os --file=migrations/0002_seed.sql'
-    }
-  ]
+    sqlBundle = [
+      '-- GIAPHA-OS: schema + all migrations (idempotent bundle)',
+      '-- Run this entire script once in Supabase SQL Editor.',
+      '',
+      '-- docs/schema.sql',
+      schemaContent,
+      ...migrationContents.flatMap((content, index) => [
+        '',
+        `-- docs/migrations/${migrationFiles[index]}`,
+        content
+      ])
+    ].join('\n')
+  } catch (error) {
+    console.error('Error reading database SQL bundle:', error)
+    sqlBundle =
+      '-- Error: Could not read the database initialization SQL bundle.'
+  }
 
   return (
     <div className='relative flex min-h-screen flex-col overflow-hidden bg-[#fafaf9] select-none selection:bg-amber-200 selection:text-amber-900'>
@@ -42,7 +48,7 @@ export default async function SetupPage() {
         <div className='absolute bottom-[0%] left-[-10%] h-[60vw] max-h-[800px] w-[60vw] max-w-[800px] rounded-full bg-teal-200/20 mix-blend-multiply blur-[120px]' />
       </div>
 
-      <div className='relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-12'>
+      <div className='relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 py-12'>
         <div className='relative mb-8 w-full overflow-hidden rounded-3xl border border-stone-200 bg-white p-8 sm:p-10'>
           <div className='mb-6 flex items-center gap-4'>
             <div className='rounded-2xl bg-indigo-50 p-4 text-indigo-600'>
@@ -50,35 +56,64 @@ export default async function SetupPage() {
             </div>
             <div>
               <h2 className='text-2xl font-semibold text-stone-900 sm:text-3xl'>
-                Database Setup
+                {t('setupTitle')}
               </h2>
               <p className='font-medium text-stone-500'>
-                Initialize Cloudflare D1 database
+                {t('setupDescription')}
               </p>
             </div>
           </div>
 
-          <div className='space-y-4'>
-            <p className='text-stone-600'>
-              This app requires a Cloudflare D1 database. Run these commands in your terminal to get started:
-            </p>
+          <div className='grid grid-cols-1 gap-8 md:grid-cols-2'>
+            <div className='space-y-6'>
+              <div className='h-full rounded-2xl border border-stone-200 bg-stone-50 p-6'>
+                <h3 className='mb-4 flex items-center gap-2 font-semibold text-stone-900'>
+                  <Play className='size-5 text-stone-500' />
+                  {t('setupInstructions')}
+                </h3>
 
-            {steps.map(({ step, title, command }) => (
-              <div key={step} className='rounded-xl border border-stone-200 overflow-hidden'>
-                <div className='flex items-center gap-3 bg-stone-50 px-4 py-2'>
-                  <span className='flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'>{step}</span>
-                  <span className='text-sm font-medium text-stone-700'>{title}</span>
-                </div>
-                <div className='flex items-center gap-2 bg-[#1e1e1e] px-4 py-3'>
-                  <Terminal className='size-4 shrink-0 text-stone-400' />
-                  <code className='font-mono text-sm text-emerald-400'>{command}</code>
+                <ol className='list-inside list-decimal space-y-4 text-stone-600'>
+                  <li className='leading-relaxed'>
+                    {t('clickButton')}{' '}
+                    <strong className='text-indigo-600'>
+                      {t('copyAllSql')}
+                    </strong>{' '}
+                    {t('copyBundleDescription')}
+                  </li>
+                  <li className='leading-relaxed'>
+                    {t('open')}{' '}
+                    <a
+                      href='https://supabase.com/dashboard/project/_/sql/new'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='font-medium text-amber-600 hover:underline'>
+                      Supabase SQL Editor
+                    </a>{' '}
+                    {t('openSqlEditor')}
+                  </li>
+                  <li className='leading-relaxed'>{t('pasteSql')}</li>
+                  <li className='leading-relaxed'>{t('runSql')}</li>
+                  <li className='leading-relaxed'>{t('returnAndReload')}</li>
+                </ol>
+
+                <div className='mt-8'>
+                  <CopyButton content={sqlBundle} />
                 </div>
               </div>
-            ))}
+            </div>
 
-            <p className='text-sm text-stone-500 mt-4'>
-              After applying migrations, <Link href='/login' className='text-indigo-600 underline underline-offset-2 hover:text-indigo-800'>reload this page</Link> or navigate to <Link href='/login' className='text-indigo-600 underline underline-offset-2 hover:text-indigo-800'>/login</Link> to create your admin account.
-            </p>
+            <div className='col-span-1 flex h-[400px] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-[#1e1e1e]'>
+              <div className='flex items-center justify-between border-b border-stone-800 bg-[#2d2d2d] px-4 py-2'>
+                <span className='font-mono text-sm text-stone-400'>
+                  {t('sqlBundle')}
+                </span>
+              </div>
+              <div className='custom-scrollbar w-full flex-grow overflow-y-auto p-4'>
+                <pre className='font-mono text-sm leading-relaxed whitespace-pre text-stone-300 sm:text-sm'>
+                  <code>{sqlBundle}</code>
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>

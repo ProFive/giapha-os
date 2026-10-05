@@ -20,7 +20,7 @@ export default function MemberDetailModal() {
     showCreateMember,
     setShowCreateMember
   } = useMemberListView()
-  const { user, isAdmin, isEditor: canEdit } = useUser()
+  const { user, isAdmin, isEditor: canEdit, supabase } = useUser()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
 
@@ -45,16 +45,27 @@ export default function MemberDetailModal() {
       setLoading(true)
       setError(null)
       try {
-        const personRes = await fetch(`/api/persons/${id}`)
-        const personJson = await personRes.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (!personRes.ok || !personJson.data) throw new Error(t('memberLoadError'))
-        setPerson(user ? personJson.data : { ...personJson.data, avatar_url: null })
+        // 1. Fetch Person Public Data
+        const { data: personData, error: personError } = await supabase
+          .from('persons')
+          .select('*')
+          .eq('id', id)
+          .single()
 
+        if (personError || !personData) {
+          throw new Error(t('memberLoadError'))
+        }
+        // Guests never get photos: /api/avatar is logged-in only.
+        setPerson(user ? personData : { ...personData, avatar_url: null })
+
+        // 2. Fetch Private Data if Admin
         if (isAdmin) {
-          const privRes = await fetch(`/api/persons/${id}/private`)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const privJson = (privRes.ok ? await privRes.json() : { data: {} }) as any
-          setPrivateData(privJson.data || {})
+          const { data: privData } = await supabase
+            .from('person_details_private')
+            .select('*')
+            .eq('person_id', id)
+            .single()
+          setPrivateData(privData || {})
         } else {
           setPrivateData(null)
         }
@@ -66,7 +77,7 @@ export default function MemberDetailModal() {
         setLoading(false)
       }
     },
-    [isAdmin, t, user]
+    [isAdmin, supabase, t, user]
   )
 
   // Sync state with URL parameter or create mode

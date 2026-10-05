@@ -1,6 +1,6 @@
 import MemberForm from '@/components/MemberForm'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile } from '@/utils/db/queries'
+import { getProfile } from '@/utils/supabase/queries'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 

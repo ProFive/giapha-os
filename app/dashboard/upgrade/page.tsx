@@ -1,7 +1,7 @@
 import UpgradeManager from '@/components/UpgradeManager'
 import { getMigrationStatus } from '@/app/actions/migrations'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile } from '@/utils/db/queries'
+import { getProfile } from '@/utils/supabase/queries'
 import { redirect } from 'next/navigation'
 
 export default async function UpgradePage() {

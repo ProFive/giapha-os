@@ -5,6 +5,9 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import dayjs from 'dayjs'
 import { CalendarDays, Maximize2, X, Clock } from 'lucide-react'
 import { useState, useMemo } from 'react'
+
+import { createClient } from '@/utils/supabase/client'
+import { getGalleryStoragePath } from '@/utils/supabase/storage-path'
 import Image from 'next/image'
 
 interface GalleryGridProps {
@@ -83,8 +86,21 @@ export default function GalleryGrid({
     if (!confirm(t('deleteImageConfirm'))) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`/api/gallery/${item.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Delete failed')
+      const supabase = createClient()
+
+      // Delete from storage if possible
+      const storagePath =
+        item.storage_path || getGalleryStoragePath(item.image_url)
+      if (storagePath) {
+        await supabase.storage.from('gallery').remove([storagePath])
+      }
+
+      // Delete from db
+      const { error } = await supabase
+        .from('gallery_items')
+        .delete()
+        .eq('id', item.id)
+      if (error) throw error
 
       setSelectedItem(null)
       if (onDeleteSuccess) onDeleteSuccess(item.id)

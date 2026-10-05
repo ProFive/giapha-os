@@ -1,7 +1,7 @@
 import config from '@/app/config'
 import HeaderMenu from '@/components/HeaderMenu'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { getUser } from '@/utils/db/queries'
+import { getUser } from '@/utils/supabase/queries'
 import Image from 'next/image'
 import Link from 'next/link'
 

@@ -2,6 +2,7 @@
 
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Person, Relationship } from '@/types'
+import { createClient } from '@/utils/supabase/client'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertCircle,
@@ -270,6 +271,8 @@ export default function LineageManager({
   relationships
 }: LineageManagerProps) {
   const { t } = useI18n()
+  const supabase = createClient()
+
   const [updates, setUpdates] = useState<ComputedUpdate[] | null>(null)
   const [computing, setComputing] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -335,21 +338,21 @@ export default function LineageManager({
 
     try {
       const changedOnly = updates.filter((u) => u.changed)
+      // Batch update in chunks of 20
       const CHUNK = 20
       for (let i = 0; i < changedOnly.length; i += CHUNK) {
         const chunk = changedOnly.slice(i, i + CHUNK)
+        // Update each person individually (Supabase doesn't support bulk upsert with different values easily)
         await Promise.all(
           chunk.map((u) =>
-            fetch('/api/persons', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: u.id,
+            supabase
+              .from('persons')
+              .update({
                 generation: u.new_generation,
                 birth_order: u.new_birth_order,
                 is_in_law: u.new_is_in_law
               })
-            })
+              .eq('id', u.id)
           )
         )
       }
