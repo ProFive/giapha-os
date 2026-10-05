@@ -26,7 +26,8 @@ const MIGRATION_FILES = [
   'docs/migrations/20260916100000_add_dharma_name_and_age_at_death.sql',
   'docs/migrations/20260918000000_public_member_read_access.sql',
   'docs/migrations/20260919000000_link_profile_to_person.sql',
-  'docs/migrations/20260919010000_add_news_board.sql'
+  'docs/migrations/20260919010000_add_news_board.sql',
+  'docs/migrations/20261005000000_editor_owns_persons.sql'
 ] as const
 
 const MIGRATION_TABLE = 'public.app_migrations'

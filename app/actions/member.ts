@@ -1,6 +1,7 @@
 'use server'
 
 import { getServerTranslations } from '@/lib/i18n/server'
+import { canManagePerson } from '@/utils/permissions'
 import { getProfile, getSupabase } from '@/utils/supabase/queries'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -23,6 +24,21 @@ export async function deleteMemberProfile(memberId: string) {
   ) {
     return {
       error: t('memberDeleteAccessDenied')
+    }
+  }
+
+  // Editor chỉ xóa được thành viên do chính họ tạo
+  if (profile.role === 'editor') {
+    const { data: person } = await supabase
+      .from('persons')
+      .select('created_by')
+      .eq('id', memberId)
+      .single()
+
+    if (!canManagePerson(profile, person)) {
+      return {
+        error: t('memberDeleteAccessDenied')
+      }
     }
   }
 
@@ -127,10 +143,15 @@ export async function updateDescendantGenerationsAction(
   const descendantIds = Array.from(descendants)
 
   // 3. Fetch current generations of descendants
-  const { data: persons, error: personsError } = await supabase
+  // Editor chỉ cập nhật được con cháu do chính họ tạo
+  let personsQuery = supabase
     .from('persons')
     .select('id, generation')
     .in('id', descendantIds)
+  if (profile.role === 'editor') {
+    personsQuery = personsQuery.eq('created_by', profile.id)
+  }
+  const { data: persons, error: personsError } = await personsQuery
 
   if (personsError) {
     console.error('Error fetching persons:', personsError)

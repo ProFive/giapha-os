@@ -7,6 +7,7 @@ import {
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Person, RelationshipType } from '@/types'
 import { getAvatarUrl } from '@/utils/avatar'
+import { canManagePerson } from '@/utils/permissions'
 import { formatDisplayDate } from '@/utils/dateHelpers'
 import { getAvatarBg } from '@/utils/styleHelprs'
 import { createClient } from '@/utils/supabase/client'
@@ -14,6 +15,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import DefaultAvatar from './DefaultAvatar'
+import { useUser } from './UserProvider'
 
 interface RelationshipManagerProps {
   person: Person
@@ -49,6 +51,9 @@ export default function RelationshipManager({
   const memberListContext = useContext(MemberListContext)
   const { setMemberModalId } = useMemberListView()
   const router = useRouter()
+  const { profile } = useUser()
+  // Editor chỉ được tạo/xóa quan hệ khi cả hai người đều do họ tạo
+  const ownerFilterId = isAdmin ? null : (profile?.id ?? null)
 
   const personId = person.id
   const personGender = person.gender
@@ -291,35 +296,35 @@ export default function RelationshipManager({
         return
       }
 
-      const { data } = await supabase
+      let query = supabase
         .from('persons')
         .select('*')
         .ilike('full_name', `%${searchTerm}%`)
         .neq('id', personId) // Exclude self
-        .limit(5)
+      if (ownerFilterId) query = query.eq('created_by', ownerFilterId)
+      const { data } = await query.limit(5)
 
       if (data) setSearchResults(data)
     }
 
     const timeoutId = setTimeout(searchPeople, 300)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, personId, supabase])
+  }, [searchTerm, personId, supabase, ownerFilterId])
 
   // Fetch recent members when opening Add form
   useEffect(() => {
     if (isAdding && recentMembers.length === 0) {
       const fetchRecent = async () => {
-        const { data } = await supabase
-          .from('persons')
-          .select('*')
-          .neq('id', personId)
+        let query = supabase.from('persons').select('*').neq('id', personId)
+        if (ownerFilterId) query = query.eq('created_by', ownerFilterId)
+        const { data } = await query
           .order('created_at', { ascending: false })
           .limit(10)
         if (data) setRecentMembers(data)
       }
       fetchRecent()
     }
-  }, [isAdding, personId, supabase, recentMembers.length])
+  }, [isAdding, personId, supabase, recentMembers.length, ownerFilterId])
 
   const handleAddRelationship = async () => {
     if (!selectedTargetId) return
@@ -715,30 +720,32 @@ export default function RelationshipManager({
                         )}
                       </div>
                     </button>
-                    {canEdit && rel.direction !== 'child_in_law' && (
-                      <button
-                        onClick={() => handleDelete(rel.id)}
-                        className='ml-2 flex items-center justify-center rounded-lg p-2 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-500 sm:p-2.5'
-                        title={t('deleteRelationship')}
-                        aria-label={t('deleteRelationship')}>
-                        <svg
-                          xmlns='http://www.w3.org/2000/svg'
-                          width='16'
-                          height='16'
-                          viewBox='0 0 24 24'
-                          fill='none'
-                          stroke='currentColor'
-                          strokeWidth='2'
-                          strokeLinecap='round'
-                          strokeLinejoin='round'>
-                          <path d='M3 6h18' />
-                          <path d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6' />
-                          <path d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2' />
-                          <line x1='10' x2='10' y1='11' y2='17' />
-                          <line x1='14' x2='14' y1='11' y2='17' />
-                        </svg>
-                      </button>
-                    )}
+                    {canEdit &&
+                      rel.direction !== 'child_in_law' &&
+                      canManagePerson(profile, rel.targetPerson) && (
+                        <button
+                          onClick={() => handleDelete(rel.id)}
+                          className='ml-2 flex items-center justify-center rounded-lg p-2 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-500 sm:p-2.5'
+                          title={t('deleteRelationship')}
+                          aria-label={t('deleteRelationship')}>
+                          <svg
+                            xmlns='http://www.w3.org/2000/svg'
+                            width='16'
+                            height='16'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'>
+                            <path d='M3 6h18' />
+                            <path d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6' />
+                            <path d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2' />
+                            <line x1='10' x2='10' y1='11' y2='17' />
+                            <line x1='14' x2='14' y1='11' y2='17' />
+                          </svg>
+                        </button>
+                      )}
                   </li>
                 ))}
               </ul>
@@ -999,12 +1006,14 @@ export default function RelationshipManager({
                 onChange={(e) => setSelectedSpouseId(e.target.value)}
                 className='block w-full max-w-full rounded-lg border border-stone-300 bg-white p-2 text-sm text-stone-900 transition-colors focus:border-sky-500 focus:ring-sky-500 sm:p-2.5'>
                 <option value='unknown'>{t('unknownOtherParent')}</option>
-                {groupByType('spouse').map((rel) => (
-                  <option key={rel.id} value={rel.targetPerson.id}>
-                    {rel.targetPerson.full_name}{' '}
-                    {rel.note ? `(${rel.note})` : ''}
-                  </option>
-                ))}
+                {groupByType('spouse')
+                  .filter((rel) => canManagePerson(profile, rel.targetPerson))
+                  .map((rel) => (
+                    <option key={rel.id} value={rel.targetPerson.id}>
+                      {rel.targetPerson.full_name}{' '}
+                      {rel.note ? `(${rel.note})` : ''}
+                    </option>
+                  ))}
               </select>
             </div>
 

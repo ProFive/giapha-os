@@ -6,6 +6,7 @@ import { useUser } from '@/components/UserProvider'
 import MemberDetailContent from '@/context/MemberDetailContent'
 import { useMemberListView } from '@/context/MemberListContext'
 import { Person } from '@/types'
+import { canManagePerson } from '@/utils/permissions'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertCircle, ArrowLeft, Edit2, ExternalLink, X } from 'lucide-react'
 import Link from 'next/link'
@@ -20,7 +21,7 @@ export default function MemberDetailModal() {
     showCreateMember,
     setShowCreateMember
   } = useMemberListView()
-  const { user, isAdmin, isEditor: canEdit, supabase } = useUser()
+  const { user, profile, isAdmin, supabase } = useUser()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
 
@@ -28,6 +29,7 @@ export default function MemberDetailModal() {
   const [error, setError] = useState<string | null>(null)
 
   const [person, setPerson] = useState<Person | null>(null)
+  const canEdit = canManagePerson(profile, person)
   const [privateData, setPrivateData] = useState<Record<
     string,
     unknown

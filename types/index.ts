@@ -53,6 +53,7 @@ export interface Person {
   other_names: string | null
   dharma_name: string | null
   age_at_death: number | null
+  created_by?: string | null
 }
 
 export interface Relationship {

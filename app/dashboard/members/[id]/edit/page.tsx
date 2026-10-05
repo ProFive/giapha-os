@@ -1,5 +1,6 @@
 import MemberForm from '@/components/MemberForm'
 import { getServerTranslations } from '@/lib/i18n/server'
+import { canManagePerson } from '@/utils/permissions'
 import { getProfile, getSupabase } from '@/utils/supabase/queries'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -16,17 +17,18 @@ export default async function EditMemberPage({ params }: PageProps) {
   const profile = await getProfile()
   const isAdmin = profile?.role === 'admin' && profile.is_active
   const isEditor = profile?.role === 'editor' && profile.is_active
-  if (!isAdmin && !isEditor) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-stone-50'>
-        <div className='text-center'>
-          <h1 className='text-2xl font-semibold text-stone-800'>
-            {t('accessDenied')}
-          </h1>
-          <p className='mt-2 text-stone-600'>{t('noEditMemberPermission')}</p>
-        </div>
+  const accessDenied = (
+    <div className='flex min-h-screen items-center justify-center bg-stone-50'>
+      <div className='text-center'>
+        <h1 className='text-2xl font-semibold text-stone-800'>
+          {t('accessDenied')}
+        </h1>
+        <p className='mt-2 text-stone-600'>{t('noEditMemberPermission')}</p>
       </div>
-    )
+    </div>
+  )
+  if (!isAdmin && !isEditor) {
+    return accessDenied
   }
 
   const supabase = await getSupabase()
@@ -40,6 +42,11 @@ export default async function EditMemberPage({ params }: PageProps) {
 
   if (error || !person) {
     notFound()
+  }
+
+  // Editor chỉ sửa được thành viên do chính họ tạo
+  if (!canManagePerson(profile, person)) {
+    return accessDenied
   }
 
   // Fetch Private Data

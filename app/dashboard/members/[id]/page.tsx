@@ -1,6 +1,7 @@
 import DeleteMemberButton from '@/components/DeleteMemberButton'
 import MemberDetailContent from '@/context/MemberDetailContent'
 import { getServerTranslations } from '@/lib/i18n/server'
+import { canManagePerson } from '@/utils/permissions'
 import { getProfile, getSupabase, getUser } from '@/utils/supabase/queries'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -18,9 +19,6 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const profile = await getProfile()
 
   const isAdmin = profile?.role === 'admin' && profile.is_active
-  const canEdit =
-    profile?.is_active === true &&
-    (profile.role === 'admin' || profile.role === 'editor')
 
   const supabase = await getSupabase()
 
@@ -34,6 +32,8 @@ export default async function MemberDetailPage({ params }: PageProps) {
   if (error || !person) {
     notFound()
   }
+
+  const canEdit = canManagePerson(profile, person)
 
   // Fetch Private Data if Admin
   let privateData = null
