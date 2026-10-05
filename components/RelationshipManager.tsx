@@ -9,11 +9,71 @@ import { Person, RelationshipType } from '@/types'
 import { getAvatarUrl } from '@/utils/avatar'
 import { formatDisplayDate } from '@/utils/dateHelpers'
 import { getAvatarBg } from '@/utils/styleHelprs'
-import { createClient } from '@/utils/supabase/client'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import DefaultAvatar from './DefaultAvatar'
+
+// API helpers replacing direct Supabase client calls
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiResult = { data: any; error: string | null }
+
+const api = {
+  async getRelationships(personId: string): Promise<ApiResult> {
+    const res = await fetch(`/api/persons/${personId}/relationships`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? [], error: json.error ?? null }
+  },
+  async searchPersons(query: string, excludeId: string): Promise<ApiResult> {
+    const res = await fetch(`/api/persons/search?q=${encodeURIComponent(query)}&exclude=${excludeId}&limit=20`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? [], error: json.error ?? null }
+  },
+  async getRecentPersons(): Promise<ApiResult> {
+    const res = await fetch('/api/persons/search?recent=1&limit=10')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? [], error: json.error ?? null }
+  },
+  async addRelationship(body: { type: string; person_a: string; person_b: string; note?: string | null }): Promise<ApiResult> {
+    const res = await fetch('/api/relationships', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? null, error: json.error ?? null }
+  },
+  async deleteRelationship(id: string): Promise<{ error: string | null }> {
+    const res = await fetch(`/api/relationships/${id}`, { method: 'DELETE' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { error: json.error ?? null }
+  },
+  async createPerson(body: Record<string, unknown>): Promise<ApiResult> {
+    const res = await fetch('/api/persons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? null, error: json.error ?? null }
+  },
+  async updatePerson(body: Record<string, unknown>): Promise<ApiResult> {
+    const res = await fetch('/api/persons', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return { data: json.data ?? null, error: json.error ?? null }
+  }
+}
 
 interface RelationshipManagerProps {
   person: Person
@@ -45,7 +105,6 @@ export default function RelationshipManager({
   onStatsLoaded
 }: RelationshipManagerProps) {
   const { t } = useI18n()
-  const supabase = createClient()
   const memberListContext = useContext(MemberListContext)
   const { setMemberModalId } = useMemberListView()
   const router = useRouter()
@@ -110,87 +169,75 @@ export default function RelationshipManager({
   // Fetch relationships
   const fetchRelationships = useCallback(async () => {
     try {
-      // Get all relationships where this person involved
-      // This is a bit complex because we need to check both a and b columns
-      const { data: relsA, error: errA } = await supabase
-        .from('relationships')
-        .select(`*, target:persons!person_b(*)`) // if I am A, target is B
-        .eq('person_a', personId)
+      // Fetch raw relationships
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rawRels } = await api.getRelationships(personId)
 
-      const { data: relsB, error: errB } = await supabase
-        .from('relationships')
-        .select(`*, target:persons!person_a(*)`) // if I am B, target is A
-        .eq('person_b', personId)
+      // Build a set of all unique person IDs to fetch
+      const personIds = new Set<string>()
+      rawRels.forEach((r: { person_a: string; person_b: string }) => {
+        personIds.add(r.person_a)
+        personIds.add(r.person_b)
+      })
+      personIds.delete(personId) // exclude self
 
-      if (errA || errB) throw errA || errB
+      // Fetch all related persons in one batch via search with IDs
+      const personsMap = new Map<string, Person>()
+      if (personIds.size > 0) {
+        const batchRes = await fetch(`/api/persons/batch?ids=${Array.from(personIds).join(',')}`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const batchJson = await batchRes.json() as any
+        ;(batchJson.data ?? []).forEach((p: Person) => personsMap.set(p.id, p))
+      }
 
       const formattedRels: EnrichedRelationship[] = []
 
-      // Process Rels where I am Person A
-      relsA?.forEach((r) => {
-        let direction: 'parent' | 'child' | 'spouse' = 'spouse'
-        if (r.type === 'marriage') direction = 'spouse'
-        else if (r.type === 'biological_child' || r.type === 'adopted_child')
-          direction = 'child' // I am A (Parent), B is Child
-
-        formattedRels.push({
-          id: r.id,
-          type: r.type,
-          direction,
-          targetPerson: r.target,
-          note: r.note
+      // Process relationships where person is A
+      rawRels
+        .filter((r: { person_a: string }) => r.person_a === personId)
+        .forEach((r: { id: string; type: RelationshipType; person_b: string; note: string | null }) => {
+          const target = personsMap.get(r.person_b)
+          if (!target) return
+          const direction = r.type === 'marriage' ? 'spouse' : 'child'
+          formattedRels.push({ id: r.id, type: r.type, direction, targetPerson: target, note: r.note })
         })
-      })
 
-      // Process Rels where I am Person B
-      relsB?.forEach((r) => {
-        let direction: 'parent' | 'child' | 'spouse' = 'spouse'
-        if (r.type === 'marriage') direction = 'spouse'
-        else if (r.type === 'biological_child' || r.type === 'adopted_child')
-          direction = 'parent' // I am B (Child), A is Parent
-
-        formattedRels.push({
-          id: r.id,
-          type: r.type,
-          direction,
-          targetPerson: r.target,
-          note: r.note
+      // Process relationships where person is B
+      rawRels
+        .filter((r: { person_b: string }) => r.person_b === personId)
+        .forEach((r: { id: string; type: RelationshipType; person_a: string; note: string | null }) => {
+          const target = personsMap.get(r.person_a)
+          if (!target) return
+          const direction = r.type === 'marriage' ? 'spouse' : 'parent'
+          formattedRels.push({ id: r.id, type: r.type, direction, targetPerson: target, note: r.note })
         })
-      })
 
-      // Fetch in-laws (spouses of children)
+      // Calculate in-laws (spouses of children)
       const childrenIds = formattedRels
         .filter((r) => r.direction === 'child')
         .map((r) => r.targetPerson.id)
 
       if (childrenIds.length > 0) {
-        const { data: childrenMarriages } = await supabase
-          .from('relationships')
-          .select(
-            `*, person_a_data:persons!person_a(*), person_b_data:persons!person_b(*)`
+        // Fetch marriages for children from the already-loaded rels
+        rawRels
+          .filter((r: { type: string; person_a: string; person_b: string }) =>
+            r.type === 'marriage' &&
+            (childrenIds.includes(r.person_a) || childrenIds.includes(r.person_b))
           )
-          .eq('type', 'marriage')
-          .or(
-            `person_a.in.(${childrenIds.join(',')}),person_b.in.(${childrenIds.join(',')})`
-          )
-
-        if (childrenMarriages) {
-          childrenMarriages.forEach((m) => {
+          .forEach((m: { id: string; type: RelationshipType; person_a: string; person_b: string; note: string | null }) => {
             const isAChild = childrenIds.includes(m.person_a)
-            const childPerson = isAChild ? m.person_a_data : m.person_b_data
-            const spousePerson = isAChild ? m.person_b_data : m.person_a_data
+            const childId = isAChild ? m.person_a : m.person_b
+            const spouseId = isAChild ? m.person_b : m.person_a
+            const childPerson = personsMap.get(childId)
+            const spousePerson = personsMap.get(spouseId)
 
-            if (spousePerson && childPerson) {
+            if (spousePerson && childPerson && spouseId !== personId) {
               const spouseGender = spousePerson.gender
               let noteLabel = t('spouseOf', { name: childPerson.full_name })
               if (spouseGender === 'female')
-                noteLabel = t('daughterInLawOf', {
-                  name: childPerson.full_name
-                })
+                noteLabel = t('daughterInLawOf', { name: childPerson.full_name })
               if (spouseGender === 'male')
                 noteLabel = t('sonInLawOf', { name: childPerson.full_name })
-
-              // Append existing marriage note if any
               if (m.note) noteLabel += ` - ${m.note}`
 
               formattedRels.push({
@@ -202,7 +249,6 @@ export default function RelationshipManager({
               })
             }
           })
-        }
       }
 
       if (onStatsLoaded) {
@@ -218,46 +264,35 @@ export default function RelationshipManager({
         ).length
 
         const daughterInLaw = formattedRels.filter(
-          (r) =>
-            r.direction === 'child_in_law' && r.targetPerson.gender === 'female'
+          (r) => r.direction === 'child_in_law' && r.targetPerson.gender === 'female'
         ).length
         const sonInLaw = formattedRels.filter(
-          (r) =>
-            r.direction === 'child_in_law' && r.targetPerson.gender === 'male'
+          (r) => r.direction === 'child_in_law' && r.targetPerson.gender === 'male'
         ).length
 
-        // Fetch Grandchildren mapping
+        // Count grandchildren from persons map (children of children)
+        const maleChildrenIds = formattedRels
+          .filter((r) => r.direction === 'child' && r.targetPerson.gender === 'male')
+          .map((r) => r.targetPerson.id)
+        const femaleChildrenIds = formattedRels
+          .filter((r) => r.direction === 'child' && r.targetPerson.gender === 'female')
+          .map((r) => r.targetPerson.id)
+
         let paternalGrandchildren = 0
         let maternalGrandchildren = 0
+
         if (childrenIds.length > 0) {
-          const { data: grandchildrenData } = await supabase
-            .from('relationships')
-            .select('id, person_a')
-            .in('type', ['biological_child', 'adopted_child'])
-            .in('person_a', childrenIds)
-
-          if (grandchildrenData) {
-            const maleChildrenIds = formattedRels
-              .filter(
-                (r) =>
-                  r.direction === 'child' && r.targetPerson.gender === 'male'
-              )
-              .map((r) => r.targetPerson.id)
-            const femaleChildrenIds = formattedRels
-              .filter(
-                (r) =>
-                  r.direction === 'child' && r.targetPerson.gender === 'female'
-              )
-              .map((r) => r.targetPerson.id)
-
-            paternalGrandchildren = grandchildrenData.filter((g) =>
-              maleChildrenIds.includes(g.person_a)
-            ).length
-            maternalGrandchildren = grandchildrenData.filter((g) =>
-              femaleChildrenIds.includes(g.person_a)
-            ).length
-          }
+          rawRels
+            .filter((r: { type: string; person_a: string }) =>
+              ['biological_child', 'adopted_child'].includes(r.type) &&
+              childrenIds.includes(r.person_a)
+            )
+            .forEach((g: { person_a: string }) => {
+              if (maleChildrenIds.includes(g.person_a)) paternalGrandchildren++
+              if (femaleChildrenIds.includes(g.person_a)) maternalGrandchildren++
+            })
         }
+
 
         onStatsLoaded({
           biologicalChildren,
@@ -276,7 +311,8 @@ export default function RelationshipManager({
     } finally {
       setLoading(false)
     }
-  }, [personId, supabase, onStatsLoaded, t])
+  }, [personId, onStatsLoaded, t])
+
 
   useEffect(() => {
     const timeoutId = window.setTimeout(fetchRelationships, 0)
@@ -291,35 +327,24 @@ export default function RelationshipManager({
         return
       }
 
-      const { data } = await supabase
-        .from('persons')
-        .select('*')
-        .ilike('full_name', `%${searchTerm}%`)
-        .neq('id', personId) // Exclude self
-        .limit(5)
-
+      const { data } = await api.searchPersons(searchTerm, personId)
       if (data) setSearchResults(data)
     }
 
     const timeoutId = setTimeout(searchPeople, 300)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, personId, supabase])
+  }, [searchTerm, personId])
 
   // Fetch recent members when opening Add form
   useEffect(() => {
     if (isAdding && recentMembers.length === 0) {
       const fetchRecent = async () => {
-        const { data } = await supabase
-          .from('persons')
-          .select('*')
-          .neq('id', personId)
-          .order('created_at', { ascending: false })
-          .limit(10)
-        if (data) setRecentMembers(data)
+        const { data } = await api.getRecentPersons()
+        if (data) setRecentMembers(data.filter((p: {id: string}) => p.id !== personId))
       }
       fetchRecent()
     }
-  }, [isAdding, personId, supabase, recentMembers.length])
+  }, [isAdding, personId, recentMembers.length])
 
   const handleAddRelationship = async () => {
     if (!selectedTargetId) return
@@ -353,28 +378,28 @@ export default function RelationshipManager({
       if (newRelDirection === 'spouse') type = 'marriage'
       else if (newRelType === 'adopted_child') type = 'adopted_child'
 
-      const { error } = await supabase.from('relationships').insert({
+      const { error } = await api.addRelationship({
         person_a: personA,
         person_b: personB,
         type: type,
         note: newRelNote ? newRelNote : null
       })
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
       // Auto-update target person generation and is_in_law if currently missing
       try {
-        const { data: targetPerson } = await supabase
-          .from('persons')
-          .select('generation, is_in_law')
-          .eq('id', selectedTargetId)
-          .single()
+        const targetRes = await fetch(`/api/persons/${selectedTargetId}`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const targetJson = await targetRes.json() as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const targetPerson: any = targetJson?.data
 
         if (
           targetPerson &&
           (targetPerson.generation == null || targetPerson.is_in_law == null)
         ) {
-          const updates: { generation?: number; is_in_law?: boolean } = {}
+          const updates: Record<string, unknown> = { id: selectedTargetId }
 
           if (targetPerson.generation == null && person.generation != null) {
             if (newRelDirection === 'child')
@@ -392,11 +417,8 @@ export default function RelationshipManager({
               updates.is_in_law = person.is_in_law === true ? false : true
           }
 
-          if (Object.keys(updates).length > 0) {
-            await supabase
-              .from('persons')
-              .update(updates)
-              .eq('id', selectedTargetId)
+          if (Object.keys(updates).length > 1) {
+            await api.updatePerson({ ...targetPerson, ...updates })
           }
         }
       } catch (err) {
@@ -462,33 +484,21 @@ export default function RelationshipManager({
           if (!isNaN(order)) personPayload.birth_order = order
         }
 
-        const { data: newPersonData, error: insertError } = await supabase
-          .from('persons')
-          .insert(personPayload)
-          .select('id')
-          .single()
+        const { data: newPersonData, error: insertError } = await api.createPerson(personPayload)
 
         if (insertError || !newPersonData) {
           console.error('Error inserting child:', child.name, insertError)
-          continue // Skip setting relationships for this if person insert failed
+          continue
         }
 
-        const newChildId = newPersonData.id
+        const newChildId = (newPersonData as {id: string}).id
 
         // 2. Insert Relationship to Main Person (parent)
-        await supabase.from('relationships').insert({
-          person_a: personId,
-          person_b: newChildId,
-          type: 'biological_child'
-        })
+        await api.addRelationship({ person_a: personId, person_b: newChildId, type: 'biological_child' })
 
         // 3. Insert Relationship to Second Parent (spouse), if selected
         if (selectedSpouseId && selectedSpouseId !== 'unknown') {
-          await supabase.from('relationships').insert({
-            person_a: selectedSpouseId,
-            person_b: newChildId,
-            type: 'biological_child'
-          })
+          await api.addRelationship({ person_a: selectedSpouseId, person_b: newChildId, type: 'biological_child' })
         }
 
         successCount++
@@ -569,25 +579,21 @@ export default function RelationshipManager({
       }
 
       // 1. Insert Person
-      const { data: newPersonData, error: insertError } = await supabase
-        .from('persons')
-        .insert(personPayload)
-        .select('id')
-        .single()
+      const { data: newPersonData, error: insertError } = await api.createPerson(personPayload)
 
-      if (insertError || !newPersonData) throw insertError
+      if (insertError || !newPersonData) throw new Error(insertError || 'Insert failed')
 
-      const newSpouseId = newPersonData.id
+      const newSpouseId = (newPersonData as {id: string}).id
 
       // 2. Insert Marriage Relationship
-      const { error: relError } = await supabase.from('relationships').insert({
+      const { error: relError } = await api.addRelationship({
         person_a: personId,
         person_b: newSpouseId,
         type: 'marriage',
         note: newSpouseNote.trim() || null
       })
 
-      if (relError) throw relError
+      if (relError) throw new Error(relError)
 
       setIsAddingSpouse(false)
       setNewSpouseName('')
@@ -607,11 +613,8 @@ export default function RelationshipManager({
   const handleDelete = async (relId: string) => {
     if (!confirm(t('confirmDeleteRelationship'))) return
     try {
-      const { error } = await supabase
-        .from('relationships')
-        .delete()
-        .eq('id', relId)
-      if (error) throw error
+      const { error } = await api.deleteRelationship(relId)
+      if (error) throw new Error(error)
       fetchRelationships()
       router.refresh()
     } catch (err: unknown) {

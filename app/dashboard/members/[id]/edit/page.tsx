@@ -1,6 +1,7 @@
 import MemberForm from '@/components/MemberForm'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
+import { getProfile } from '@/utils/db/queries'
+import { getDB } from '@/utils/db/client'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -14,8 +15,8 @@ export default async function EditMemberPage({ params }: PageProps) {
   const { id } = await params
 
   const profile = await getProfile()
-  const isAdmin = profile?.role === 'admin' && profile.is_active
-  const isEditor = profile?.role === 'editor' && profile.is_active
+  const isAdmin = profile?.role === 'admin' && Boolean(profile.is_active)
+  const isEditor = profile?.role === 'editor' && Boolean(profile.is_active)
   if (!isAdmin && !isEditor) {
     return (
       <div className='flex min-h-screen items-center justify-center bg-stone-50'>
@@ -29,31 +30,26 @@ export default async function EditMemberPage({ params }: PageProps) {
     )
   }
 
-  const supabase = await getSupabase()
+  const db = getDB()
+  const person = await db
+    .prepare('SELECT * FROM persons WHERE id = ?')
+    .bind(id)
+    .first()
 
-  // Fetch Public Data
-  const { data: person, error } = await supabase
-    .from('persons')
-    .select('*')
-    .eq('id', id)
-    .single()
+  if (!person) notFound()
 
-  if (error || !person) {
-    notFound()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typedPerson = person as any
 
-  // Fetch Private Data
   let privateData = null
   if (isAdmin) {
-    const { data } = await supabase
-      .from('person_details_private')
-      .select('*')
-      .eq('person_id', id)
-      .single()
-    privateData = data
+    privateData = await db
+      .prepare('SELECT * FROM person_details_private WHERE person_id = ?')
+      .bind(id)
+      .first()
   }
 
-  const initialData = isAdmin ? { ...person, ...privateData } : { ...person }
+  const initialData = isAdmin ? { ...typedPerson, ...privateData } : { ...typedPerson }
 
   return (
     <div className='relative flex w-full flex-1 flex-col pb-8'>

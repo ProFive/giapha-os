@@ -1,7 +1,7 @@
 import { MemberListProvider } from '@/context/MemberListContext'
 import EventsList from '@/components/EventsList'
 import MemberDetailModal from '@/components/modal/MemberDetailModal'
-import { getSupabase } from '@/utils/supabase/queries'
+import { getDB } from '@/utils/db/client'
 import { getServerTranslations } from '@/lib/i18n/server'
 
 export async function generateMetadata() {
@@ -11,21 +11,21 @@ export async function generateMetadata() {
 
 export default async function EventsPage() {
   const { t } = await getServerTranslations()
-  const supabase = await getSupabase()
+  const db = getDB()
 
   const [personsRes, customEventsRes] = await Promise.all([
-    supabase
-      .from('persons')
-      .select(
-        'id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, avatar_url'
-      ),
-    supabase
-      .from('custom_events')
-      .select('id, name, content, event_date, location, created_by')
+    db.prepare(
+      'SELECT id, full_name, birth_year, birth_month, birth_day, death_year, death_month, death_day, death_lunar_year, death_lunar_month, death_lunar_day, is_deceased, avatar_url FROM persons'
+    ).all<Record<string, unknown>>(),
+    db.prepare(
+      'SELECT id, name, content, event_date, location, created_by FROM custom_events'
+    ).all<Record<string, unknown>>()
   ])
 
-  const persons = personsRes.data || []
-  const customEvents = customEventsRes.data || []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const persons = (personsRes.results ?? []) as any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const customEvents = (customEventsRes.results ?? []) as any[]
 
   return (
     <MemberListProvider>
@@ -45,7 +45,6 @@ export default async function EventsPage() {
         </main>
       </div>
 
-      {/* Modal for member details when clicking an event card */}
       <MemberDetailModal />
     </MemberListProvider>
   )

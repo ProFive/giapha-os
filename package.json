@@ -5,15 +5,20 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "npx @cloudflare/next-on-pages",
     "start": "next start",
+    "deploy": "npm run build:cf && wrangler pages deploy",
+    "preview": "npm run build:cf && wrangler pages dev",
     "lint": "eslint",
     "lint:fix": "eslint --fix .",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "db:migrate": "wrangler d1 migrations apply giapha-os",
+    "db:migrate:local": "wrangler d1 migrations apply giapha-os --local",
+    "db:seed": "wrangler d1 execute giapha-os --file=migrations/0002_seed.sql",
+    "db:seed:local": "wrangler d1 execute giapha-os --file=migrations/0002_seed.sql --local"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.5",
-    "@supabase/supabase-js": "^2.115.0",
     "d3": "^7.9.0",
     "dayjs": "^1.11.23",
     "framer-motion": "^13.2.0",
@@ -24,11 +29,12 @@
     "lunar-javascript": "^1.7.7",
     "next": "^16.3.4",
     "papaparse": "^5.7.0",
-    "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.12",
+    "@cloudflare/workers-types": "^4.20250405.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/d3": "^7.4.3",
     "@types/node": "^26.4.1",
@@ -41,7 +47,8 @@
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^3.105.1"
   },
   "ignoreScripts": [
     "sharp",

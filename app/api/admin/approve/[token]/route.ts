@@ -5,11 +5,11 @@ import {
   TranslationKey,
   TranslationValues
 } from '@/lib/i18n/messages'
-import { hashApprovalToken } from '@/utils/approval'
-import { getAdminSupabase } from '@/utils/supabase/admin'
+import { hashApprovalTokenAsync } from '@/utils/approval'
+import { getDB } from '@/utils/db/client'
 import { NextResponse } from 'next/server'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
 interface RouteContext {
   params: Promise<{ token: string }>
@@ -88,18 +88,24 @@ function htmlResponse(content: string, status = 200, locale: Locale = 'vi') {
 }
 
 async function getRequest(token: string) {
-  if (!/^[A-Za-z0-9_-]{43}$/.test(token))
-    return { supabase: null, request: null }
+  if (!/^[0-9a-f]{64}$/.test(token)) return { request: null }
 
-  const supabase = getAdminSupabase()
-  const { data, error } = await supabase
-    .from('user_approval_requests')
-    .select('id, user_id, email, expires_at, used_at')
-    .eq('token_hash', hashApprovalToken(token))
-    .maybeSingle()
+  const db = getDB()
+  const tokenHash = await hashApprovalTokenAsync(token)
+  const data = await db
+    .prepare(
+      'SELECT id, user_id, email, expires_at, used_at FROM user_approval_requests WHERE token_hash = ?'
+    )
+    .bind(tokenHash)
+    .first<{
+      id: string
+      user_id: string
+      email: string
+      expires_at: string
+      used_at: string | null
+    }>()
 
-  if (error) throw error
-  return { supabase, request: data }
+  return { request: data ?? null }
 }
 
 function invalidRequestResponse(locale: Locale, t: Translator) {
@@ -176,9 +182,9 @@ export async function POST(_request: Request, { params }: RouteContext) {
     }
 
     const { token } = await params
-    const { supabase, request } = await getRequest(token)
+    const { request } = await getRequest(token)
 
-    if (!request || !supabase) return invalidRequestResponse(locale, t)
+    if (!request) return invalidRequestResponse(locale, t)
 
     if (request.used_at) {
       return processedResponse(locale, t)
@@ -188,28 +194,27 @@ export async function POST(_request: Request, { params }: RouteContext) {
       return invalidRequestResponse(locale, t)
     }
 
-    // Claim the one-time request first. The conditional update makes two
-    // concurrent clicks mutually exclusive even though this route is stateless.
-    const { data: claimedRequest, error: claimError } = await supabase
-      .from('user_approval_requests')
-      .update({ used_at: new Date().toISOString() })
-      .eq('id', request.id)
-      .is('used_at', null)
-      .select('id')
-      .maybeSingle()
+    const db = getDB()
+    const now = new Date().toISOString()
 
-    if (claimError) throw claimError
-    if (!claimedRequest) {
+    // Atomic claim: only update if used_at is still NULL
+    const claimResult = await db
+      .prepare(
+        'UPDATE user_approval_requests SET used_at = ? WHERE id = ? AND used_at IS NULL'
+      )
+      .bind(now, request.id)
+      .run()
+
+    if (!claimResult.meta.changes) {
       return processedResponse(locale, t)
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('is_active')
-      .eq('id', request.user_id)
-      .maybeSingle()
+    const profile = await db
+      .prepare('SELECT is_active FROM profiles WHERE id = ?')
+      .bind(request.user_id)
+      .first<{ is_active: number }>()
 
-    if (profileError || !profile) {
+    if (!profile) {
       return htmlResponse(
         `<h1 style="margin-top:0;color:#991b1b">${t('approvalNotFoundTitle')}</h1><p>${t('approvalNotFoundText')}</p>`,
         404,
@@ -218,13 +223,12 @@ export async function POST(_request: Request, { params }: RouteContext) {
     }
 
     if (!profile.is_active) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ is_active: true, updated_at: new Date().toISOString() })
-        .eq('id', request.user_id)
-        .eq('is_active', false)
-
-      if (updateError) throw updateError
+      await db
+        .prepare(
+          'UPDATE profiles SET is_active = 1, updated_at = ? WHERE id = ? AND is_active = 0'
+        )
+        .bind(now, request.user_id)
+        .run()
     }
 
     return htmlResponse(

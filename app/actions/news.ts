@@ -1,8 +1,10 @@
 'use server'
 
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
-import { getNewsStoragePath } from '@/utils/supabase/storage-path'
+import { getProfile } from '@/utils/db/queries'
+import { getDB } from '@/utils/db/client'
+import { generateId } from '@/utils/db/auth'
+import { deleteFile, parseStorageFileName } from '@/utils/r2/storage'
 import { revalidatePath } from 'next/cache'
 
 const UUID_PATTERN =
@@ -34,17 +36,16 @@ export async function createPost(input: {
   if (!input.title.trim()) return { error: t('newsTitleRequired') }
   if (!input.content.trim()) return { error: t('newsContentRequired') }
 
-  const supabase = await getSupabase()
-  const { error } = await supabase.from('news_posts').insert({
-    title: input.title.trim(),
-    content: input.content.trim(),
-    image_urls: input.imagePaths
-  })
+  const db = getDB()
+  const id = generateId()
+  const now = new Date().toISOString()
 
-  if (error) {
-    console.error('Error creating news post:', error)
-    return { error: t('newsSaveError') }
-  }
+  await db
+    .prepare(
+      'INSERT INTO news_posts (id, title, content, image_urls, created_at, updated_at) VALUES (?,?,?,?,?,?)'
+    )
+    .bind(id, input.title.trim(), input.content.trim(), JSON.stringify(input.imagePaths), now, now)
+    .run()
 
   revalidatePath('/dashboard/news')
 }
@@ -63,20 +64,15 @@ export async function updatePost(input: {
   if (!input.title.trim()) return { error: t('newsTitleRequired') }
   if (!input.content.trim()) return { error: t('newsContentRequired') }
 
-  const supabase = await getSupabase()
-  const { error } = await supabase
-    .from('news_posts')
-    .update({
-      title: input.title.trim(),
-      content: input.content.trim(),
-      image_urls: input.imagePaths
-    })
-    .eq('id', input.id)
+  const db = getDB()
+  const now = new Date().toISOString()
 
-  if (error) {
-    console.error('Error updating news post:', error)
-    return { error: t('newsSaveError') }
-  }
+  await db
+    .prepare(
+      'UPDATE news_posts SET title = ?, content = ?, image_urls = ?, updated_at = ? WHERE id = ?'
+    )
+    .bind(input.title.trim(), input.content.trim(), JSON.stringify(input.imagePaths), now, input.id)
+    .run()
 
   revalidatePath('/dashboard/news')
 }
@@ -88,33 +84,20 @@ export async function deletePost(id: string) {
 
   if (!UUID_PATTERN.test(id)) return { error: t('newsSaveError') }
 
-  const supabase = await getSupabase()
+  const db = getDB()
 
-  const { data: post } = await supabase
-    .from('news_posts')
-    .select('image_urls')
-    .eq('id', id)
-    .single()
+  const post = await db
+    .prepare('SELECT image_urls FROM news_posts WHERE id = ?')
+    .bind(id)
+    .first<{ image_urls: string }>()
 
-  const { error } = await supabase.from('news_posts').delete().eq('id', id)
+  await db.prepare('DELETE FROM news_posts WHERE id = ?').bind(id).run()
 
-  if (error) {
-    console.error('Error deleting news post:', error)
-    return { error: t('newsSaveError') }
-  }
-
-  const paths = (post?.image_urls || []).map((value: string) =>
-    getNewsStoragePath(value)
-  )
-
-  if (paths.length > 0) {
-    const { error: storageError } = await supabase.storage
-      .from('news')
-      .remove(paths)
-
-    // Ảnh mồ côi không làm hỏng luồng xoá bài, chỉ ghi log.
-    if (storageError) {
-      console.error('Error removing news images:', storageError)
+  if (post?.image_urls) {
+    const paths: string[] = JSON.parse(post.image_urls)
+    for (const p of paths) {
+      const fileName = parseStorageFileName('news', p)
+      if (fileName) await deleteFile('news', fileName)
     }
   }
 
@@ -129,15 +112,21 @@ export async function deleteComment(id: string) {
   const profile = await getProfile()
   if (!profile?.is_active) return { error: t('newsCommentError') }
 
-  const supabase = await getSupabase()
+  const db = getDB()
 
-  // RLS quyết định ai được xoá: tác giả hoặc admin.
-  const { error } = await supabase.from('news_comments').delete().eq('id', id)
+  // Admins can delete any comment; others can only delete their own
+  const comment = await db
+    .prepare('SELECT created_by FROM news_comments WHERE id = ?')
+    .bind(id)
+    .first<{ created_by: string | null }>()
 
-  if (error) {
-    console.error('Error deleting news comment:', error)
+  if (!comment) return { error: t('newsCommentError') }
+
+  if (profile.role !== 'admin' && comment.created_by !== profile.id) {
     return { error: t('newsCommentError') }
   }
+
+  await db.prepare('DELETE FROM news_comments WHERE id = ?').bind(id).run()
 
   revalidatePath('/dashboard/news')
 }

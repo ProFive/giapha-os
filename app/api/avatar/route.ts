@@ -1,47 +1,13 @@
-import { getAvatarStoragePath } from '@/utils/avatar'
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
+// Redirect old avatar URLs to new storage route
 export async function GET(request: Request) {
-  const requestedPath = new URL(request.url).searchParams.get('path')
-  const path = getAvatarStoragePath(requestedPath)
-
-  if (!path || path.length > 512 || path.includes('..')) {
-    return new NextResponse('Invalid avatar path', { status: 400 })
-  }
-
-  const supabase = createClient(await cookies())
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_active')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!profile?.is_active) return new NextResponse('Forbidden', { status: 403 })
-
-  const { data, error } = await supabase.storage.from('avatars').download(path)
-
-  if (error || !data) return new NextResponse('Not found', { status: 404 })
-
-  if (!data.type.startsWith('image/')) {
-    return new NextResponse('Unsupported avatar type', { status: 415 })
-  }
-
-  return new NextResponse(data, {
-    headers: {
-      'Cache-Control': 'private, max-age=300',
-      'Content-Type': data.type,
-      'Referrer-Policy': 'no-referrer',
-      'X-Content-Type-Options': 'nosniff'
-    }
-  })
+  const { searchParams } = new URL(request.url)
+  const path = searchParams.get('path')
+  if (!path) return new NextResponse('Not found', { status: 404 })
+  return NextResponse.redirect(
+    new URL(`/api/storage/avatars/${encodeURIComponent(path)}`, request.url)
+  )
 }

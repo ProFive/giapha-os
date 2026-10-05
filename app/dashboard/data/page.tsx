@@ -1,5 +1,5 @@
 import DataImportExport from '@/components/DataImportExport'
-import { getProfile } from '@/utils/supabase/queries'
+import { getProfile } from '@/utils/db/queries'
 import { getServerTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 

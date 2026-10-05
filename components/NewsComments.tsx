@@ -15,7 +15,7 @@ export default function NewsComments({
   onCountChange?: (count: number) => void
 }) {
   const { t } = useI18n()
-  const { user, isAdmin, supabase } = useUser()
+  const { user, isAdmin } = useUser()
   const [comments, setComments] = useState<NewsComment[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
@@ -24,23 +24,17 @@ export default function NewsComments({
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data, error: loadError } = await supabase
-      .from('news_comments')
-      .select(
-        '*, author:persons!news_comments_author_person_id_fkey(id, full_name, gender, avatar_url)'
-      )
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true })
-
-    if (loadError) {
-      setError(t('newsCommentError'))
-    } else {
-      const loaded = (data || []) as NewsComment[]
+    try {
+      const res = await fetch(`/api/news/${postId}/comments`)
+      const json = await res.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const loaded = (json.data || []) as NewsComment[]
       setComments(loaded)
       onCountChange?.(loaded.length)
+    } catch {
+      setError(t('newsCommentError'))
     }
     setLoading(false)
-  }, [postId, supabase, t, onCountChange])
+  }, [postId, t, onCountChange])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(load, 0)
@@ -52,12 +46,13 @@ export default function NewsComments({
     setSending(true)
     setError(null)
 
-    // created_by và author_person_id do trigger set_news_author điền.
-    const { error: insertError } = await supabase
-      .from('news_comments')
-      .insert({ post_id: postId, content: draft.trim() })
+    const res = await fetch(`/api/news/${postId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: draft.trim() })
+    })
 
-    if (insertError) {
+    if (!res.ok) {
       setError(t('newsCommentError'))
     } else {
       setDraft('')

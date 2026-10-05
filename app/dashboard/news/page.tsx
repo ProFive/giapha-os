@@ -1,77 +1,77 @@
 import NewsClient from '@/components/NewsClient'
 import { getServerTranslations } from '@/lib/i18n/server'
 import { NewsAuthor, NewsPost } from '@/types'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
-import { getNewsStoragePath } from '@/utils/supabase/storage-path'
+import { getProfile } from '@/utils/db/queries'
+import { getDB } from '@/utils/db/client'
+import { r2PublicUrl } from '@/utils/r2/storage'
 
 export async function generateMetadata() {
   const { t } = await getServerTranslations()
-  return {
-    title: t('newsTitle'),
-    description: t('newsDescription')
-  }
+  return { title: t('newsTitle'), description: t('newsDescription') }
 }
 
 export default async function NewsPage() {
-  const supabase = await getSupabase()
+  const db = getDB()
   const profile = await getProfile()
   const canPost =
-    profile?.is_active === true &&
-    (profile.role === 'admin' || profile.role === 'editor')
+    Boolean(profile?.is_active) &&
+    (profile?.role === 'admin' || profile?.role === 'editor')
 
-  const { data: postsData } = await supabase
-    .from('news_posts')
-    .select(
-      '*, author:persons!news_posts_author_person_id_fkey(id, full_name, gender, avatar_url)'
+  // Fetch posts with author info via JOIN
+  const postsRes = await db
+    .prepare(
+      `SELECT np.*,
+              p.id as author_id, p.full_name as author_full_name,
+              p.gender as author_gender, p.avatar_url as author_avatar_url
+       FROM news_posts np
+       LEFT JOIN persons p ON p.id = np.author_person_id
+       ORDER BY np.created_at DESC`
     )
-    .order('created_at', { ascending: false })
-
-  const posts = (postsData || []) as (NewsPost & {
-    author: NewsAuthor | null
-  })[]
-
-  // Đếm bình luận trong một truy vấn thay vì mỗi bài một truy vấn.
-  const { data: commentRows } = await supabase
-    .from('news_comments')
-    .select('post_id')
-
-  const commentCount = new Map<string, number>()
-  ;(commentRows || []).forEach((row: { post_id: string }) => {
-    commentCount.set(row.post_id, (commentCount.get(row.post_id) ?? 0) + 1)
-  })
-
-  const signedPosts = await Promise.all(
-    posts.map(async (post) => {
-      // Đường dẫn gốc trong bucket, chuẩn hoá nhưng KHÔNG lọc: một ảnh ký
-      // thất bại vẫn phải sống sót qua vòng round-trip edit tiếp theo, dù
-      // không hiển thị được (xem NewsPostModal / types.NewsPost.image_paths).
-      const imagePaths = (post.image_urls || []).map((value) =>
-        getNewsStoragePath(value)
-      )
-      const image_urls = await Promise.all(
-        imagePaths.map(async (path) => {
-          const { data } = await supabase.storage
-            .from('news')
-            .createSignedUrl(path, 60 * 60)
-          return data?.signedUrl || ''
-        })
-      )
-
-      return {
-        ...post,
-        image_urls: image_urls.filter(Boolean),
-        image_paths: imagePaths,
-        comment_count: commentCount.get(post.id) ?? 0
+    .all<
+      NewsPost & {
+        author_id: string | null
+        author_full_name: string | null
+        author_gender: string | null
+        author_avatar_url: string | null
       }
-    })
+    >()
+
+  // Comment counts
+  const commentRes = await db
+    .prepare('SELECT post_id, COUNT(*) as cnt FROM news_comments GROUP BY post_id')
+    .all<{ post_id: string; cnt: number }>()
+
+  const commentCount = new Map(
+    (commentRes.results ?? []).map((r) => [r.post_id, r.cnt])
   )
 
-  // router.refresh() giữ nguyên state của NewsClient theo thiết kế của React,
-  // nên bài mới/bài vừa sửa không tự hiện nếu không đổi `key`. Đếm bài không
-  // đổi khi sửa nội dung (length như nhau), nên phải kết hợp với updated_at
-  // mới nhất trong danh sách để remount đúng lúc cả khi tạo lẫn khi sửa.
-  const latestUpdatedAt = signedPosts.reduce(
-    (latest, post) => (post.updated_at > latest ? post.updated_at : latest),
+  const posts: NewsPost[] = (postsRes.results ?? []).map((row) => {
+    const rawPaths: string[] = JSON.parse(row.image_urls as unknown as string || '[]')
+    const image_urls = rawPaths.map((p) =>
+      p.startsWith('/') ? p : r2PublicUrl('news', p)
+    )
+
+    const author: NewsAuthor | null =
+      row.author_id
+        ? {
+            id: row.author_id,
+            full_name: row.author_full_name ?? '',
+            gender: (row.author_gender as NewsAuthor['gender']) ?? 'other',
+            avatar_url: row.author_avatar_url ?? null
+          }
+        : null
+
+    return {
+      ...row,
+      image_urls,
+      image_paths: rawPaths,
+      author,
+      comment_count: commentCount.get(row.id) ?? 0
+    }
+  })
+
+  const latestUpdatedAt = posts.reduce(
+    (latest, p) => (p.updated_at > latest ? p.updated_at : latest),
     ''
   )
 
@@ -79,8 +79,8 @@ export default async function NewsPage() {
     <main className='relative flex w-full flex-1 flex-col overflow-auto bg-stone-50/50 pt-8'>
       <div className='relative z-10 mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 lg:px-8'>
         <NewsClient
-          key={`${signedPosts.length}-${latestUpdatedAt}`}
-          posts={signedPosts}
+          key={`${posts.length}-${latestUpdatedAt}`}
+          posts={posts}
           canPost={canPost}
         />
       </div>

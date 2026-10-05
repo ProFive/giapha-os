@@ -1,6 +1,6 @@
 import KinshipFinder from '@/components/KinshipFinder'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getSupabase } from '@/utils/supabase/queries'
+import { getDB } from '@/utils/db/client'
 
 export async function generateMetadata() {
   const { t } = await getServerTranslations()
@@ -9,18 +9,19 @@ export async function generateMetadata() {
 
 export default async function KinshipPage() {
   const { t } = await getServerTranslations()
-  const supabase = await getSupabase()
+  const db = getDB()
 
-  const { data: persons } = await supabase
-    .from('persons')
-    .select(
-      'id, full_name, gender, birth_year, birth_order, generation, is_in_law, avatar_url'
-    )
-    .order('birth_year', { ascending: true, nullsFirst: false })
+  const [personsRes, relsRes] = await Promise.all([
+    db.prepare(
+      'SELECT id, full_name, gender, birth_year, birth_order, generation, is_in_law, avatar_url FROM persons ORDER BY birth_year ASC NULLS LAST'
+    ).all<Record<string,unknown>>(),
+    db.prepare('SELECT type, person_a, person_b FROM relationships').all<Record<string,unknown>>()
+  ])
 
-  const { data: relationships } = await supabase
-    .from('relationships')
-    .select('type, person_a, person_b')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const persons = (personsRes.results ?? []) as any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const relationships = (relsRes.results ?? []) as any[]
 
   return (
     <div className='relative flex w-full flex-1 flex-col pb-12'>

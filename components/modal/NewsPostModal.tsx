@@ -3,7 +3,6 @@
 import { createPost, updatePost } from '@/app/actions/news'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { NewsPost } from '@/types'
-import { uploadNewsImage } from '@/utils/supabase/storage'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2, UploadCloud, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -84,7 +83,12 @@ function NewsPostForm({ onClose, onSuccess, initialData }: NewsPostFormProps) {
       // DB bằng danh sách bị rút gọn và làm mất ảnh vĩnh viễn.
       const uploaded: string[] = [...(initialData?.image_paths ?? [])]
       for (const file of files) {
-        const { path, error: uploadError } = await uploadNewsImage(file)
+        const formData = new FormData()
+        formData.append('file', file)
+        const uploadRes = await fetch('/api/upload/news', { method: 'POST', body: formData })
+        const uploadJson = await uploadRes.json() as any  // eslint-disable-line @typescript-eslint/no-explicit-any
+        const path = uploadJson.path
+        const uploadError = uploadRes.ok ? null : uploadJson.error
         if (uploadError || !path) {
           setError(t('newsSaveError'))
           return

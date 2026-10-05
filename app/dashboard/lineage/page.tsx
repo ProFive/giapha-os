@@ -1,6 +1,7 @@
 import LineageManager from '@/components/LineageManager'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getProfile, getSupabase } from '@/utils/supabase/queries'
+import { getProfile } from '@/utils/db/queries'
+import { getDB } from '@/utils/db/client'
 import { redirect } from 'next/navigation'
 
 export default async function LineagePage() {
@@ -11,18 +12,16 @@ export default async function LineagePage() {
     redirect('/dashboard')
   }
 
-  const supabase = await getSupabase()
+  const db = getDB()
+  const [personsRes, relsRes] = await Promise.all([
+    db.prepare('SELECT * FROM persons ORDER BY birth_year ASC NULLS LAST').all(),
+    db.prepare('SELECT * FROM relationships').all()
+  ])
 
-  const { data: personsData } = await supabase
-    .from('persons')
-    .select('*')
-    .order('birth_year', { ascending: true, nullsFirst: false })
-
-  const { data: relsData } = await supabase.from('relationships').select('*')
-
-  // Identify "roots" - people with no parents
-  const persons = personsData || []
-  const relationships = relsData || []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const persons = (personsRes.results ?? []) as any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const relationships = (relsRes.results ?? []) as any[]
 
   return (
     <main className='relative flex w-full flex-1 flex-col overflow-auto bg-stone-50/50 pt-8'>

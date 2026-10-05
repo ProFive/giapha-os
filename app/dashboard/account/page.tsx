@@ -1,6 +1,6 @@
 import ChangePasswordForm from '@/components/ChangePasswordForm'
 import { getServerTranslations } from '@/lib/i18n/server'
-import { getUser } from '@/utils/supabase/queries'
+import { getUser } from '@/utils/db/queries'
 import { redirect } from 'next/navigation'
 
 export default async function AccountPage() {

@@ -2,7 +2,6 @@
 
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { CustomEventRecord } from '@/utils/eventHelpers'
-import { createClient } from '@/utils/supabase/client'
 import { AnimatePresence, motion, Variants } from 'framer-motion'
 import {
   AlertCircle,
@@ -126,7 +125,6 @@ export default function CustomEventModal({
     setError(null)
 
     try {
-      const supabase = createClient()
       const payload = {
         name,
         event_date: eventDate,
@@ -134,21 +132,22 @@ export default function CustomEventModal({
         content: content || null
       }
 
-      let resultError
+      let res
       if (eventToEdit) {
-        const { error: err } = await supabase
-          .from('custom_events')
-          .update(payload)
-          .eq('id', eventToEdit.id)
-        resultError = err
+        res = await fetch(`/api/events/${eventToEdit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
       } else {
-        const { error: err } = await supabase
-          .from('custom_events')
-          .insert([payload])
-        resultError = err
+        res = await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
       }
 
-      if (resultError) throw resultError
+      if (!res.ok) throw new Error(t('saveEventError'))
 
       onSuccess()
       onClose()
@@ -171,13 +170,8 @@ export default function CustomEventModal({
     setLoading(true)
     setError(null)
     try {
-      const supabase = createClient()
-      const { error: err } = await supabase
-        .from('custom_events')
-        .delete()
-        .eq('id', eventToEdit.id)
-
-      if (err) throw err
+      const res = await fetch(`/api/events/${eventToEdit.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete failed')
 
       onSuccess()
       onClose()
