@@ -34,7 +34,7 @@ export default async function FamilyTreePage({ searchParams }: PageProps) {
     supabase.from('relationships').select('*')
   ])
 
-  // Guests see the tree without photos: /api/avatar stays logged-in only, so
+  // Guests see the tree without photos: /api/files stays logged-in only, so
   // drop the URLs rather than render broken images.
   const persons = user
     ? personsRes.data || []

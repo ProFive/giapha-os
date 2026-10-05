@@ -2,6 +2,12 @@ export type Gender = 'male' | 'female' | 'other'
 export type RelationshipType = 'marriage' | 'biological_child' | 'adopted_child'
 export type UserRole = 'admin' | 'editor' | 'member'
 
+/** The signed-in account, as resolved from the session cookie. */
+export interface AuthUser {
+  id: string
+  email: string
+}
+
 export interface Profile {
   id: string
   role: UserRole

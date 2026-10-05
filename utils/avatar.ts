@@ -1,3 +1,6 @@
+import { getFileUrl } from '@/utils/blob/buckets'
+
+// Legacy avatar values may still be full Supabase Storage URLs.
 const SUPABASE_STORAGE_MARKER = '/storage/v1/object/'
 
 /**
@@ -5,7 +8,10 @@ const SUPABASE_STORAGE_MARKER = '/storage/v1/object/'
  * object path. External URLs are rejected so database input cannot turn into
  * arbitrary browser-side tracking requests.
  */
-export function getAvatarStoragePath(value: string | null | undefined) {
+export function getAvatarStoragePath(value: string |export function getAvatarUrl(value: string | null | undefined) {
+  const path = getAvatarStoragePath(value)
+  return path ? getFileUrl('avatars', path) : null
+}| undefined) {
   if (!value) return null
 
   try {
@@ -34,5 +40,5 @@ export function getAvatarStoragePath(value: string | null | undefined) {
 
 export function getAvatarUrl(value: string | null | undefined) {
   const path = getAvatarStoragePath(value)
-  return path ? `/api/avatar?path=${encodeURIComponent(path)}` : null
+  return path ? getFileUrl('avatars', path) : null
 }

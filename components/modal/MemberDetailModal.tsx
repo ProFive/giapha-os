@@ -55,7 +55,7 @@ export default function MemberDetailModal() {
         if (personError || !personData) {
           throw new Error(t('memberLoadError'))
         }
-        // Guests never get photos: /api/avatar is logged-in only.
+        // Guests never get photos: /api/files is logged-in only.
         setPerson(user ? personData : { ...personData, avatar_url: null })
 
         // 2. Fetch Private Data if Admin

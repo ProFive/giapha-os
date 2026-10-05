@@ -5,8 +5,8 @@
 -- đủ quan hệ để test mọi tính năng (kể cả trang Sự kiện)
 -- ============================================================
 -- CÁCH DÙNG
---   • Supabase SQL Editor: dán toàn bộ file rồi Run.
---   • psql: psql "$SUPABASE_DB_URL" -f docs/seed.sql
+--   • Neon SQL Editor: dán toàn bộ file rồi Run.
+--   • psql: psql "$DATABASE_URL" -f docs/seed.sql
 -- File này KHÔNG nằm trong migration runner — chỉ chạy thủ công.
 -- CẢNH BÁO: Xóa sạch persons, relationships, person_details_private
 --   và custom_events hiện có. KHÔNG đụng profiles, auth, gallery.
