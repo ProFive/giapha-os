@@ -2,6 +2,8 @@ import { getDB } from '@/utils/db/client'
 import { getUser, getProfile } from '@/utils/db/queries'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 async function assertCanEdit() {
   const user = await getUser()
   if (!user) return null

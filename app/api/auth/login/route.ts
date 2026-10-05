@@ -10,6 +10,8 @@ import {
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

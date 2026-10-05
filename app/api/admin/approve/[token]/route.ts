@@ -9,6 +9,8 @@ import { hashApprovalTokenAsync } from '@/utils/approval'
 import { getDB } from '@/utils/db/client'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 interface RouteContext {
   params: Promise<{ token: string }>
 }

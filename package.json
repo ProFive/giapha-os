@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "opennextjs-cloudflare build",
+    "build:cf": "npx @cloudflare/next-on-pages",
     "start": "next start",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "npm run build:cf && wrangler pages deploy",
+    "preview": "npm run build:cf && wrangler pages dev",
     "lint": "eslint",
     "lint:fix": "eslint --fix .",
     "format": "prettier . --write",
@@ -19,7 +19,6 @@
     "db:seed:local": "wrangler d1 execute giapha-os --file=migrations/0002_seed.sql --local"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.20.8",
     "d3": "^7.9.0",
     "dayjs": "^1.11.23",
     "framer-motion": "^13.2.0",
@@ -34,6 +33,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.12",
     "@cloudflare/workers-types": "^4.20250405.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/d3": "^7.4.3",
@@ -48,7 +48,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
-    "wrangler": "^4.147.0"
+    "wrangler": "^3.105.1"
   },
   "ignoreScripts": [
     "sharp",

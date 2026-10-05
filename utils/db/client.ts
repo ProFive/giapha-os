@@ -1,4 +1,4 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getRequestContext } from '@cloudflare/next-on-pages'
 
 export interface Env {
   DB: D1Database
@@ -10,7 +10,7 @@ export interface Env {
  * Must only be called in edge runtime (Server Components, Server Actions, API Routes).
  */
 export function getDB(): D1Database {
-  const { env } = getCloudflareContext()
+  const { env } = getRequestContext()
   return (env as unknown as Env).DB
 }
 
@@ -18,6 +18,6 @@ export function getDB(): D1Database {
  * Returns the R2 storage bucket binding.
  */
 export function getStorage(): R2Bucket {
-  const { env } = getCloudflareContext()
+  const { env } = getRequestContext()
   return (env as unknown as Env).STORAGE
 }

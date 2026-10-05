@@ -3,6 +3,8 @@ import { getUser, getProfile } from '@/utils/db/queries'
 import { generateId } from '@/utils/db/auth'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 async function assertCanEdit() {
   const user = await getUser()
   if (!user) return { user: null, profile: null }

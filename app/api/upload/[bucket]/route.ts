@@ -2,6 +2,8 @@ import { getUser, getProfile } from '@/utils/db/queries'
 import { uploadFile, r2PublicUrl } from '@/utils/r2/storage'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 

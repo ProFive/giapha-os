@@ -1,18 +1,13 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nguyentoc",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2025-09-01",
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
+  "name": "giapha-os",
+  "compatibility_date": "2024-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": ".vercel/output/static",
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "giapha-os",
-      "database_id": "c5c06195-0d06-4a8f-bace-28a66ad904ed",
+      "database_id": "c178172a993d86a753f473253276a6d4",
       "migrations_dir": "migrations"
     }
   ],

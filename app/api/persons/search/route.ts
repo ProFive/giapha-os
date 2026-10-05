@@ -2,6 +2,8 @@ import { getDB } from '@/utils/db/client'
 import { getUser } from '@/utils/db/queries'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 export async function GET(req: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

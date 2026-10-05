@@ -2,6 +2,8 @@ import { getDB } from '@/utils/db/client'
 import { getUser, getProfile } from '@/utils/db/queries'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

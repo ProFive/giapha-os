@@ -48,7 +48,3 @@ next-env.d.ts
 skills-lock.json
 NOTE.md
 .env*
-
-# opennext
-.open-next
-.wrangler

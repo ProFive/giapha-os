@@ -3,6 +3,8 @@ import { getUser, getProfile } from '@/utils/db/queries'
 import { generateId } from '@/utils/db/auth'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
