@@ -2,8 +2,6 @@ import { getFileStream } from '@/utils/r2/storage'
 import { getUser } from '@/utils/db/queries'
 import { NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-
 interface RouteContext {
   params: Promise<{ bucket: string; file: string }>
 }

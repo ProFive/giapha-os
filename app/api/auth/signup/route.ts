@@ -11,8 +11,6 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { notifyAdminOfPendingUser } from '@/utils/approval-notification'
 
-export const runtime = 'edge'
-
 export async function POST(request: Request) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

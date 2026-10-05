@@ -3,8 +3,6 @@ import { getUser, getProfile } from '@/utils/db/queries'
 import { deleteFile, parseStorageFileName } from '@/utils/r2/storage'
 import { NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

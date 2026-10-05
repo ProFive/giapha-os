@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-
 // Redirect old avatar URLs to new storage route
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
