@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { I18nProvider } from '@/lib/i18n/I18nProvider'
 import { getServerLocale } from '@/lib/i18n/server'
 import config from './config'
@@ -30,6 +31,7 @@ export default async function RootLayout({
       <body
         className={`${inter.variable} ${playfair.variable} relative font-sans antialiased`}>
         <I18nProvider initialLocale={locale}>{children}</I18nProvider>
+        <Analytics />
       </body>
     </html>
   )
